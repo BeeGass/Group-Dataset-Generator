@@ -1,0 +1,24 @@
+[project]
+name = "s5-data-gen"
+version = "0.1.0"
+description = "A script to generate permutation composition datasets."
+dependencies = [
+    "sympy",
+    "datasets",
+    "huggingface_hub",
+    "tqdm",
+    "pandas",
+    "pyarrow",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["a5_data", "s3_data", "s4_data", "s5_data"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
