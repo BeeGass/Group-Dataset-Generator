@@ -72,3 +72,6 @@ Thumbs.db
 # UV
 .uv/
 uv.lock
+
+# History files
+history.md
