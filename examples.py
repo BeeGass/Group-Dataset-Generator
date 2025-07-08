@@ -122,6 +122,8 @@ def run_examples():
         ("s5_data", "Symmetric Group S5 (120 elements)"),
         ("s6_data", "Symmetric Group S6 (720 elements)"),
         ("s7_data", "Symmetric Group S7 (5040 elements)"),
+        ("a3_data", "Alternating Group A3 (3 elements)"),
+        ("a4_data", "Alternating Group A4 (12 elements)"),
         ("a5_data", "Alternating Group A5 (60 elements)"),
         ("a6_data", "Alternating Group A6 (360 elements)"),
         ("a7_data", "Alternating Group A7 (2520 elements)"),
@@ -151,7 +153,7 @@ def run_verification():
     
     configs = [
         "s3_data", "s4_data", "s5_data", "s6_data", "s7_data",
-        "a5_data", "a6_data", "a7_data"
+        "a3_data", "a4_data", "a5_data", "a6_data", "a7_data"
     ]
     
     results = {}
@@ -180,7 +182,7 @@ def benchmark_loading():
     
     configs = [
         "s3_data", "s4_data", "s5_data", "s6_data", "s7_data",
-        "a5_data", "a6_data", "a7_data", "all"
+        "a3_data", "a4_data", "a5_data", "a6_data", "a7_data", "all"
     ]
     
     times = {}

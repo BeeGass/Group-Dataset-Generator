@@ -8,7 +8,7 @@ A Python tool for generating permutation composition datasets for symmetric and 
 
 This project generates datasets of permutation compositions for various mathematical groups:
 - **Symmetric Groups**: S3, S4, S5, S6, S7
-- **Alternating Groups**: A5, A6, A7
+- **Alternating Groups**: A3, A4, A5, A6, A7
 
 Each dataset consists of sequences of permutations and their compositions, useful for training models on group theory operations.
 
@@ -93,6 +93,8 @@ The composition follows the standard mathematical convention: for input `[p1, p2
 | `s5_data` | Symmetric | 120 | Permutations of 5 elements |
 | `s6_data` | Symmetric | 720 | Permutations of 6 elements |
 | `s7_data` | Symmetric | 5040 | Permutations of 7 elements |
+| `a3_data` | Alternating | 3 | Even permutations of 3 elements |
+| `a4_data` | Alternating | 12 | Even permutations of 4 elements |
 | `a5_data` | Alternating | 60 | Even permutations of 5 elements |
 | `a6_data` | Alternating | 360 | Even permutations of 6 elements |
 | `a7_data` | Alternating | 2520 | Even permutations of 7 elements |

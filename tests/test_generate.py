@@ -39,6 +39,11 @@ class TestGroupGeneration:
     
     def test_get_alternating_group(self):
         """Test alternating group creation."""
+        a3 = get_group("A3")
+        assert type(a3).__name__ == "PermutationGroup"
+        assert a3.degree == 3
+        assert a3.order() == 3
+        
         a4 = get_group("A4")
         assert type(a4).__name__ == "PermutationGroup"
         assert a4.degree == 4
@@ -77,6 +82,19 @@ class TestPermutationMapping:
         # Check bijection
         for perm_str, id_val in perm_to_id.items():
             assert id_to_perm[id_val].array_form == eval(perm_str)
+    
+    def test_generate_and_map_permutations_a3(self):
+        """Test permutation mapping for A3."""
+        group = AlternatingGroup(3)
+        perm_to_id, id_to_perm = generate_and_map_permutations(group)
+        
+        # Check correct number of permutations
+        assert len(perm_to_id) == 3
+        assert len(id_to_perm) == 3
+        
+        # Check all permutations are even
+        for perm in id_to_perm.values():
+            assert perm.is_even
     
     def test_generate_and_map_permutations_a4(self):
         """Test permutation mapping for A4."""

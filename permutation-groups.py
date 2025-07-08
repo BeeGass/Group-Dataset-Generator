@@ -62,6 +62,22 @@ class PermutationGroups(datasets.ArrowBasedBuilder):
             data_dir="data/s7_data",
         ),
         PermutationGroupsConfig(
+            name="a3_data",
+            description="Permutation Composition Dataset for the Alternating Group A3.",
+            group_name="A3",
+            group_degree=3,
+            group_order=3,
+            data_dir="data/a3_data",
+        ),
+        PermutationGroupsConfig(
+            name="a4_data",
+            description="Permutation Composition Dataset for the Alternating Group A4.",
+            group_name="A4",
+            group_degree=4,
+            group_order=12,
+            data_dir="data/a4_data",
+        ),
+        PermutationGroupsConfig(
             name="a5_data",
             description="Permutation Composition Dataset for the Alternating Group A5.",
             group_name="A5",
@@ -87,7 +103,7 @@ class PermutationGroups(datasets.ArrowBasedBuilder):
         ),
         PermutationGroupsConfig(
             name="all",
-            description="All Permutation Composition Datasets (S3-S7 and A5-A7).",
+            description="All Permutation Composition Datasets (S3-S7 and A3-A7).",
             group_name="All",
             group_degree=None,
             group_order=None,
@@ -113,7 +129,7 @@ class PermutationGroups(datasets.ArrowBasedBuilder):
         if self.config.name == "all":
             # Get all individual dataset configurations
             all_configs = ["s3_data", "s4_data", "s5_data", "s6_data", "s7_data", 
-                          "a5_data", "a6_data", "a7_data"]
+                          "a3_data", "a4_data", "a5_data", "a6_data", "a7_data"]
             
             # Download all arrow files
             train_files = []
