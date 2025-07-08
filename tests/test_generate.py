@@ -1,157 +1,299 @@
+"""Tests for the permutation dataset generation script."""
+
 import pytest
-from unittest.mock import patch
-from pathlib import Path
+import tempfile
 import shutil
+from pathlib import Path
 import json
-
-from sympy.combinatorics import Permutation
-from sympy.combinatorics.named_groups import SymmetricGroup, AlternatingGroup
-from datasets import DatasetDict, Dataset
-
-# Add the parent directory to the path to import generate
 import sys
-sys.path.append(str(Path(__file__).parent.parent))
+import os
+
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from generate import (
-    get_group,
-    generate_and_map_permutations,
+    get_group, 
+    generate_and_map_permutations, 
     generate_composition_sample,
-    main as generate_main,
+    generate_readme_content
 )
+from datasets import Dataset, DatasetDict
+from sympy.combinatorics import Permutation
+from sympy.combinatorics.named_groups import SymmetricGroup, AlternatingGroup
 
 
-def test_get_group():
-    """Test that the group factory function works correctly."""
-    s3 = get_group('S3')
-    assert s3.degree == 3
-    assert s3.order() == 6
-
-    a4 = get_group('A4')
-    assert a4.degree == 4
-    assert a4.order() == 12
-    with pytest.raises(ValueError):
-        get_group('Z5')  # Invalid group name
-
-
-def test_generate_and_map_permutations():
-    """Test the permutation mapping for a small, known group (S3)."""
-    group = SymmetricGroup(3)
-    perm_to_id, id_to_perm = generate_and_map_permutations(group)
-
-    assert len(perm_to_id) == 6  # S3 has 3! = 6 elements
-    assert len(id_to_perm) == 6
-
-    # Check for a specific, known permutation
-    p = Permutation([1, 2, 0])  # A 3-cycle
-    assert str(p.array_form) in perm_to_id
-    p_id = perm_to_id[str(p.array_form)]
-    assert id_to_perm[p_id] == p
-
-
-def test_generate_composition_sample():
-    """Test the composition logic for a single sample."""
-    group = SymmetricGroup(3)
-    group_degree = group.degree
-    perm_to_id, id_to_perm = generate_and_map_permutations(group)
-
-    # Mock random.randint and random.choice to get a predictable sample
-    with patch('random.randint', return_value=3), patch('random.choice', side_effect=[0, 1, 2]):  # Sample IDs 0, 1, 2
-
-        sample = generate_composition_sample(id_to_perm, perm_to_id, 3, 5, group_degree)
-
-        # Expected sequence: id_0, id_1, id_2
-        p0 = id_to_perm[0]
-        p1 = id_to_perm[1]
-        p2 = id_to_perm[2]
-
-        # Composition is p2 * p1 * p0
-        expected_composition = p2 * p1 * p0
-        expected_target_id = perm_to_id[str(expected_composition.array_form)]
-
-        assert sample['input_sequence'] == "0 1 2"
-        assert sample['target'] == str(expected_target_id)
+class TestGroupGeneration:
+    """Test group generation functions."""
+    
+    def test_get_symmetric_group(self):
+        """Test symmetric group creation."""
+        s3 = get_group("S3")
+        assert type(s3).__name__ == "PermutationGroup"
+        assert s3.degree == 3
+        assert s3.order() == 6
+        
+        s5 = get_group("S5")
+        assert type(s5).__name__ == "PermutationGroup"
+        assert s5.degree == 5
+        assert s5.order() == 120
+    
+    def test_get_alternating_group(self):
+        """Test alternating group creation."""
+        a4 = get_group("A4")
+        assert type(a4).__name__ == "PermutationGroup"
+        assert a4.degree == 4
+        assert a4.order() == 12
+        
+        a5 = get_group("A5")
+        assert type(a5).__name__ == "PermutationGroup"
+        assert a5.degree == 5
+        assert a5.order() == 60
+    
+    def test_invalid_group_name(self):
+        """Test error handling for invalid group names."""
+        with pytest.raises(ValueError, match="Unknown group name"):
+            get_group("X5")
+        
+        with pytest.raises(ValueError, match="Unknown group name"):
+            get_group("Invalid")
 
 
-@patch('generate.login')
-@patch('datasets.DatasetDict.push_to_hub')
-def test_end_to_end_script(mock_push_to_hub, mock_login, tmp_path):
-    """Run a small, end-to-end test of the main script logic."""
-    group_name = 'S3'
-    num_samples = 100
-    output_dir = tmp_path / 'test_s3_data'
-
-    # Use a context manager to temporarily change sys.argv
-    with patch.object(sys, 'argv', [
-        'generate.py',
-        '--group-name', group_name,
-        '--num-samples', str(num_samples),
-        '--output-dir', str(output_dir),
-        '--test-split-size', '0.2'
-    ]):
-        # We need to import the script's main execution block
-        # to run it under the patched argv.
-        generate_main()
-
-    # Verify outputs
-    assert output_dir.exists()
-    assert (output_dir / "dataset_dict.json").exists()
-
-    # Load the dataset and check its properties
-    loaded_dataset = DatasetDict.load_from_disk(output_dir)
-    assert 'train' in loaded_dataset
-    assert 'test' in loaded_dataset
-    assert len(loaded_dataset['train']) == 80
-    assert len(loaded_dataset['test']) == 20
-
-    # Check metadata
-    assert loaded_dataset['train'].info.description == f"Permutation composition benchmark for the {group_name} group."
-    assert loaded_dataset['train'].info.homepage == "https://github.com/your-repo"
-    assert loaded_dataset['train'].info.license == "mit"
-
-    # Check for metadata.json
-    metadata_path = output_dir / "metadata.json"
-    assert metadata_path.exists()
-    with open(metadata_path, "r") as f:
-        metadata = json.load(f)
-    assert "0" in metadata # Check for a known key from id_to_perm
+class TestPermutationMapping:
+    """Test permutation mapping functions."""
+    
+    def test_generate_and_map_permutations_s3(self):
+        """Test permutation mapping for S3."""
+        group = SymmetricGroup(3)
+        perm_to_id, id_to_perm = generate_and_map_permutations(group)
+        
+        # Check correct number of permutations
+        assert len(perm_to_id) == 6
+        assert len(id_to_perm) == 6
+        
+        # Check that identity is mapped
+        identity = Permutation(2)  # Identity for degree 3
+        assert str(identity.array_form) in perm_to_id
+        
+        # Check bijection
+        for perm_str, id_val in perm_to_id.items():
+            assert id_to_perm[id_val].array_form == eval(perm_str)
+    
+    def test_generate_and_map_permutations_a4(self):
+        """Test permutation mapping for A4."""
+        group = AlternatingGroup(4)
+        perm_to_id, id_to_perm = generate_and_map_permutations(group)
+        
+        # Check correct number of permutations
+        assert len(perm_to_id) == 12
+        assert len(id_to_perm) == 12
+        
+        # Check all permutations are even
+        for perm in id_to_perm.values():
+            assert perm.is_even
 
 
-def test_dataset_integrity(tmp_path):
-    """Test the integrity of the generated dataset by re-calculating compositions."""
-    group_name = 'S3'
-    num_samples = 10
-    output_dir = tmp_path / 'integrity_test_s3_data'
-
-    # Generate a small dataset for integrity check
-    with patch.object(sys, 'argv', [
-        'generate.py',
-        '--group-name', group_name,
-        '--num-samples', str(num_samples),
-        '--output-dir', str(output_dir),
-        '--test-split-size', '0.5'
-    ]):
-        generate_main()
-
-    loaded_dataset = DatasetDict.load_from_disk(output_dir)
-    group = get_group(group_name)
-    perm_to_id, id_to_perm = generate_and_map_permutations(group)
-
-    for split in ['train', 'test']:
-        for sample in loaded_dataset[split]:
-            input_ids = [int(x) for x in sample['input_sequence'].split(' ')]
-            target_id = int(sample['target'])
-
-            input_perms = [id_to_perm[i] for i in input_ids]
-
-            # Re-calculate composition
-            composed_perm = Permutation(group.degree - 1) # Start with identity
-            for p in reversed(input_perms):
-                composed_perm = p * composed_perm
+class TestCompositionSample:
+    """Test composition sample generation."""
+    
+    def test_generate_composition_sample(self):
+        """Test single composition sample generation."""
+        group = SymmetricGroup(3)
+        perm_to_id, id_to_perm = generate_and_map_permutations(group)
+        
+        sample = generate_composition_sample(
+            id_to_perm, perm_to_id, 
+            min_len=2, max_len=5, 
+            group_degree=3
+        )
+        
+        # Check sample structure
+        assert "input_sequence" in sample
+        assert "target" in sample
+        
+        # Check input sequence
+        input_ids = [int(x) for x in sample["input_sequence"].split()]
+        assert 2 <= len(input_ids) <= 5
+        assert all(0 <= id_val < 6 for id_val in input_ids)
+        
+        # Check target
+        target_id = int(sample["target"])
+        assert 0 <= target_id < 6
+    
+    def test_composition_correctness(self):
+        """Test that composition is computed correctly."""
+        group = SymmetricGroup(3)
+        perm_to_id, id_to_perm = generate_and_map_permutations(group)
+        
+        # Generate multiple samples and verify
+        for _ in range(10):
+            sample = generate_composition_sample(
+                id_to_perm, perm_to_id,
+                min_len=3, max_len=3,  # Fixed length for easier testing
+                group_degree=3
+            )
             
-            recalculated_target_id = perm_to_id[str(composed_perm.array_form)]
+            # Parse sample
+            input_ids = [int(x) for x in sample["input_sequence"].split()]
+            target_id = int(sample["target"])
+            
+            # Compute composition manually
+            composed = Permutation(2)  # Identity
+            for id_val in reversed(input_ids):
+                composed = id_to_perm[id_val] * composed
+            
+            # Check result
+            expected_id = perm_to_id[str(composed.array_form)]
+            assert target_id == expected_id
 
-            assert recalculated_target_id == target_id, \
-                f"Composition mismatch in {split} split: expected {target_id}, got {recalculated_target_id}"
 
-    # Clean up the created directory
-    shutil.rmtree(output_dir)
+class TestDatasetGeneration:
+    """Test full dataset generation."""
+    
+    def test_dataset_creation(self):
+        """Test creating a dataset with proper structure."""
+        group = SymmetricGroup(3)
+        perm_to_id, id_to_perm = generate_and_map_permutations(group)
+        
+        # Generate samples
+        samples = []
+        for _ in range(100):
+            sample = generate_composition_sample(
+                id_to_perm, perm_to_id,
+                min_len=2, max_len=5,
+                group_degree=3
+            )
+            samples.append(sample)
+        
+        # Create dataset
+        dataset = Dataset.from_list(samples)
+        
+        # Check dataset structure
+        assert len(dataset) == 100
+        assert set(dataset.column_names) == {"input_sequence", "target"}
+        
+        # Check split
+        dataset_dict = dataset.train_test_split(test_size=0.2)
+        assert len(dataset_dict["train"]) == 80
+        assert len(dataset_dict["test"]) == 20
+    
+    def test_dataset_saving(self):
+        """Test saving dataset to disk."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "test_dataset"
+            
+            # Create small dataset
+            group = SymmetricGroup(3)
+            perm_to_id, id_to_perm = generate_and_map_permutations(group)
+            
+            samples = []
+            for _ in range(50):
+                sample = generate_composition_sample(
+                    id_to_perm, perm_to_id,
+                    min_len=2, max_len=5,
+                    group_degree=3
+                )
+                samples.append(sample)
+            
+            dataset = Dataset.from_list(samples)
+            dataset_dict = dataset.train_test_split(test_size=0.2)
+            
+            # Save dataset
+            dataset_dict.save_to_disk(output_path)
+            
+            # Check files exist
+            assert output_path.exists()
+            assert (output_path / "dataset_dict.json").exists()
+            assert (output_path / "train").exists()
+            assert (output_path / "test").exists()
+            
+            # Save metadata
+            metadata_path = output_path / "metadata.json"
+            with open(metadata_path, "w") as f:
+                json.dump({k: str(v.array_form) for k, v in id_to_perm.items()}, f)
+            
+            assert metadata_path.exists()
+            
+            # Load and verify
+            loaded_dataset = DatasetDict.load_from_disk(output_path)
+            assert len(loaded_dataset["train"]) == 40
+            assert len(loaded_dataset["test"]) == 10
+
+
+class TestReadmeGeneration:
+    """Test README content generation."""
+    
+    def test_readme_content(self):
+        """Test README generation includes all required information."""
+        from types import SimpleNamespace
+        
+        args = SimpleNamespace(
+            group_name="S5",
+            num_samples=100000,
+            min_len=3,
+            max_len=512,
+            test_split_size=0.2,
+            hf_repo="test/repo"
+        )
+        
+        readme = generate_readme_content(
+            args, 
+            group_order=120,
+            group_degree=5,
+            num_train_samples=80000,
+            num_test_samples=20000
+        )
+        
+        # Check key information is present
+        assert "S5" in readme
+        assert "Symmetric Group" in readme
+        assert "120" in readme  # group order
+        assert "100000" in readme  # total samples
+        assert "80000" in readme  # train samples
+        assert "20000" in readme  # test samples
+        assert "test/repo" in readme
+        assert "metadata.json" in readme
+
+
+class TestIntegration:
+    """Integration tests for the full generation process."""
+    
+    @pytest.mark.slow
+    def test_full_generation_small_group(self):
+        """Test full generation process for a small group."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            from types import SimpleNamespace
+            import subprocess
+            
+            # Run generation script
+            result = subprocess.run([
+                sys.executable, "generate.py",
+                "--group-name", "S3",
+                "--num-samples", "1000",
+                "--min-len", "2",
+                "--max-len", "10",
+                "--test-split-size", "0.2",
+                "--output-dir", tmpdir
+            ], capture_output=True, text=True)
+            
+            assert result.returncode == 0
+            
+            # Check output files
+            output_path = Path(tmpdir)
+            assert (output_path / "dataset_dict.json").exists()
+            assert (output_path / "metadata.json").exists()
+            assert (output_path / "train").exists()
+            assert (output_path / "test").exists()
+            
+            # Load and verify dataset
+            dataset = DatasetDict.load_from_disk(output_path)
+            assert len(dataset["train"]) == 800
+            assert len(dataset["test"]) == 200
+            
+            # Load metadata
+            with open(output_path / "metadata.json", "r") as f:
+                metadata = json.load(f)
+            assert len(metadata) == 6  # S3 has 6 elements
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

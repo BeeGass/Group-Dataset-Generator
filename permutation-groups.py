@@ -1,6 +1,7 @@
 import datasets
 import json
 import os
+import pyarrow as pa
 
 _DESCRIPTION = "A collection of permutation composition datasets for various symmetric and alternating groups."
 _HOMEPAGE = "https://huggingface.co/datasets/BeeGass/permutation-groups"
@@ -14,7 +15,9 @@ class PermutationGroupsConfig(datasets.BuilderConfig):
         self.group_order = group_order
         self.data_dir = data_dir
 
-class PermutationGroups(datasets.GeneratorBasedBuilder):
+class PermutationGroups(datasets.ArrowBasedBuilder):
+    """Use ArrowBasedBuilder for better performance with Arrow files."""
+    
     VERSION = datasets.Version("1.0.0")
 
     BUILDER_CONFIGS = [
@@ -129,24 +132,18 @@ class PermutationGroups(datasets.GeneratorBasedBuilder):
                 datasets.SplitGenerator(
                     name=datasets.Split.TRAIN,
                     gen_kwargs={
-                        "filepaths": train_files,
-                        "split": "train",
+                        "files": train_files,
                     },
                 ),
                 datasets.SplitGenerator(
                     name=datasets.Split.TEST,
                     gen_kwargs={
-                        "filepaths": test_files,
-                        "split": "test",
+                        "files": test_files,
                     },
                 ),
             ]
         else:
             # Single configuration
-            # Download the dataset_dict.json to understand the structure
-            dataset_dict_url = f"{self.config.data_dir}/dataset_dict.json"
-            dataset_dict_path = dl_manager.download(dataset_dict_url)
-            
             # Download the actual data files
             data_urls = {
                 "train": f"{self.config.data_dir}/train/data-00000-of-00001.arrow",
@@ -159,34 +156,22 @@ class PermutationGroups(datasets.GeneratorBasedBuilder):
                 datasets.SplitGenerator(
                     name=datasets.Split.TRAIN,
                     gen_kwargs={
-                        "filepaths": [downloaded_files["train"]],
-                        "split": "train",
+                        "files": [downloaded_files["train"]],
                     },
                 ),
                 datasets.SplitGenerator(
                     name=datasets.Split.TEST,
                     gen_kwargs={
-                        "filepaths": [downloaded_files["test"]],
-                        "split": "test",
+                        "files": [downloaded_files["test"]],
                     },
                 ),
             ]
 
-    def _generate_examples(self, filepaths, split):
-        # Load the Arrow files and yield examples
-        # Handle both single filepath and list of filepaths
-        if isinstance(filepaths, str):
-            filepaths = [filepaths]
-        
-        example_id = 0
-        for filepath in filepaths:
-            # Load the arrow file using datasets library
-            dataset = datasets.Dataset.from_file(filepath)
-            
-            # Yield each row as an example
-            for row in dataset:
-                yield example_id, {
-                    "input_sequence": row["input_sequence"],
-                    "target": row["target"],
-                }
-                example_id += 1
+    def _generate_tables(self, files):
+        """Yield arrow tables directly for better performance."""
+        for file_idx, file in enumerate(files):
+            # Load the dataset using the datasets library format
+            dataset = datasets.Dataset.from_file(file)
+            # Get the underlying Arrow table
+            table = dataset.data.table
+            yield file_idx, table
