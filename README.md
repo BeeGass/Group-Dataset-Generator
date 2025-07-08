@@ -2,6 +2,8 @@
 
 A Python tool for generating permutation composition datasets for symmetric and alternating groups, with seamless HuggingFace integration.
 
+🤗 **Dataset available on HuggingFace**: [BeeGass/permutation-groups](https://huggingface.co/datasets/BeeGass/permutation-groups)
+
 ## Overview
 
 This project generates datasets of permutation compositions for various mathematical groups:
@@ -169,6 +171,8 @@ If you use this dataset in your research, please cite:
 ```
 
 ## Acknowledgments
+
+This project was inspired by the work of [William Merrill](https://github.com/viking-sudo-rm) and his paper ["The Illusion of State in State-Space Models"](https://arxiv.org/abs/2404.08819), which explores the computational properties of state-space models through group theory.
 
 Built with:
 - [SymPy](https://www.sympy.org/) for group theory computations
