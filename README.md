@@ -163,7 +163,7 @@ If you use this dataset in your research, please cite:
 
 ```bibtex
 @software{permutation_groups_dataset,
-  author = {BeeGass},
+  author = {Bryan Gass},
   title = {Permutation Groups Dataset Generator},
   year = {2024},
   url = {https://github.com/BeeGass/permutation-groups}
