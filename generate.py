@@ -52,7 +52,9 @@ def generate_composition_sample(id_to_perm, perm_to_id, min_len, max_len, group_
     }
 
 
-def generate_readme_content(args, group_order, group_degree, num_train_samples, num_test_samples):
+def generate_readme_content(
+    args, group_order, group_degree, num_train_samples, num_test_samples
+):
     readme_content = f"""---
 pretty_name: Permutation Composition Dataset ({args.group_name})
 size_categories:
@@ -95,7 +97,7 @@ The dataset is split into `train` and `test` sets. Each sample in the dataset ha
 ## Group Details
 
 - **Group Name**: {args.group_name}
-- **Group Type**: {'Symmetric Group' if args.group_name.upper().startswith('S') else 'Alternating Group'}
+- **Group Type**: {"Symmetric Group" if args.group_name.upper().startswith("S") else "Alternating Group"}
 - **Degree**: {group_degree} (permutations act on {group_degree} elements)
 - **Order**: {group_order} (total number of elements in the group)
 
@@ -178,6 +180,7 @@ This dataset is licensed under the MIT License.
 """
     return readme_content
 
+
 def main():
     """Main function to generate and process the dataset."""
     parser = argparse.ArgumentParser(
@@ -190,13 +193,22 @@ def main():
         help="Name of the permutation group (e.g., 'S5', 'A5').",
     )
     parser.add_argument(
-        "--num-samples", type=int, default=100000, help="Total number of samples to generate."
+        "--num-samples",
+        type=int,
+        default=100000,
+        help="Total number of samples to generate.",
     )
     parser.add_argument(
-        "--min-len", type=int, default=3, help="Minimum length of permutation sequences."
+        "--min-len",
+        type=int,
+        default=3,
+        help="Minimum length of permutation sequences.",
     )
     parser.add_argument(
-        "--max-len", type=int, default=512, help="Maximum length of permutation sequences."
+        "--max-len",
+        type=int,
+        default=512,
+        help="Maximum length of permutation sequences.",
     )
     parser.add_argument(
         "--test-split-size",
@@ -248,8 +260,14 @@ def main():
 
     # Add vocabulary metadata to the dataset for later use
     for split in dataset_dict.keys():
-        dataset_dict[split].info.description = f"Permutation composition benchmark for the {args.group_name} group."
-        dataset_dict[split].info.homepage = "https://github.com/your-repo" # Optional: Link to your repo
+        dataset_dict[
+            split
+        ].info.description = (
+            f"Permutation composition benchmark for the {args.group_name} group."
+        )
+        dataset_dict[
+            split
+        ].info.homepage = "https://github.com/your-repo"  # Optional: Link to your repo
         dataset_dict[split].info.license = "mit"
 
     # Save id_to_perm mapping separately
@@ -281,6 +299,7 @@ def main():
             )
         except Exception as e:
             print(f"Failed to upload to Hugging Face Hub: {e}")
+
 
 if __name__ == "__main__":
     main()

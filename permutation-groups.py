@@ -1,193 +1,226 @@
 import datasets
 import json
 import os
-import pyarrow as pa
+import pandas as pd
 
-_DESCRIPTION = "A collection of permutation composition datasets for various symmetric and alternating groups."
+_DESCRIPTION = "Permutation composition datasets with dynamic filtering by group degree, order, and sequence length."
 _HOMEPAGE = "https://huggingface.co/datasets/BeeGass/permutation-groups"
 _LICENSE = "MIT"
 
+
 class PermutationGroupsConfig(datasets.BuilderConfig):
-    def __init__(self, *args, group_name=None, group_degree=None, group_order=None, data_dir=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.group_name = group_name
-        self.group_degree = group_degree
-        self.group_order = group_order
-        self.data_dir = data_dir
+    def __init__(
+        self,
+        group_type=None,
+        min_degree=None,
+        max_degree=None,
+        min_order=None,
+        max_order=None,
+        min_len=3,
+        max_len=1024,
+        **kwargs,
+    ):
+        """
+        Configuration for loading permutation groups.
 
-class PermutationGroups(datasets.ArrowBasedBuilder):
-    """Use ArrowBasedBuilder for better performance with Arrow files."""
-    
-    VERSION = datasets.Version("1.0.0")
+        Args:
+            group_type: Type of group (symmetric, alternating, cyclic, dihedral, klein,
+                       quaternion, elementary_abelian, psl, frobenius, mathieu)
+            min_degree: Minimum group degree to include
+            max_degree: Maximum group degree to include
+            min_order: Minimum group order to include
+            max_order: Maximum group order to include
+            min_len: Minimum sequence length
+            max_len: Maximum sequence length
+        """
+        # Set name based on parameters
+        if "name" not in kwargs:
+            if group_type:
+                kwargs["name"] = group_type
+            else:
+                kwargs["name"] = "all"
 
-    BUILDER_CONFIGS = [
-        PermutationGroupsConfig(
-            name="s3_data",
-            description="Permutation Composition Dataset for the Symmetric Group S3.",
-            group_name="S3",
-            group_degree=3,
-            group_order=6,
-            data_dir="data/s3_data",
-        ),
-        PermutationGroupsConfig(
-            name="s4_data",
-            description="Permutation Composition Dataset for the Symmetric Group S4.",
-            group_name="S4",
-            group_degree=4,
-            group_order=24,
-            data_dir="data/s4_data",
-        ),
-        PermutationGroupsConfig(
-            name="s5_data",
-            description="Permutation Composition Dataset for the Symmetric Group S5.",
-            group_name="S5",
-            group_degree=5,
-            group_order=120,
-            data_dir="data/s5_data",
-        ),
-        PermutationGroupsConfig(
-            name="s6_data",
-            description="Permutation Composition Dataset for the Symmetric Group S6.",
-            group_name="S6",
-            group_degree=6,
-            group_order=720,
-            data_dir="data/s6_data",
-        ),
-        PermutationGroupsConfig(
-            name="s7_data",
-            description="Permutation Composition Dataset for the Symmetric Group S7.",
-            group_name="S7",
-            group_degree=7,
-            group_order=5040,
-            data_dir="data/s7_data",
-        ),
-        PermutationGroupsConfig(
-            name="a3_data",
-            description="Permutation Composition Dataset for the Alternating Group A3.",
-            group_name="A3",
-            group_degree=3,
-            group_order=3,
-            data_dir="data/a3_data",
-        ),
-        PermutationGroupsConfig(
-            name="a4_data",
-            description="Permutation Composition Dataset for the Alternating Group A4.",
-            group_name="A4",
-            group_degree=4,
-            group_order=12,
-            data_dir="data/a4_data",
-        ),
-        PermutationGroupsConfig(
-            name="a5_data",
-            description="Permutation Composition Dataset for the Alternating Group A5.",
-            group_name="A5",
-            group_degree=5,
-            group_order=60,
-            data_dir="data/a5_data",
-        ),
-        PermutationGroupsConfig(
-            name="a6_data",
-            description="Permutation Composition Dataset for the Alternating Group A6.",
-            group_name="A6",
-            group_degree=6,
-            group_order=360,
-            data_dir="data/a6_data",
-        ),
-        PermutationGroupsConfig(
-            name="a7_data",
-            description="Permutation Composition Dataset for the Alternating Group A7.",
-            group_name="A7",
-            group_degree=7,
-            group_order=2520,
-            data_dir="data/a7_data",
-        ),
-        PermutationGroupsConfig(
-            name="all",
-            description="All Permutation Composition Datasets (S3-S7 and A3-A7).",
-            group_name="All",
-            group_degree=None,
-            group_order=None,
-            data_dir=None,  # Special handling for 'all'
-        ),
+        super().__init__(**kwargs)
+        self.group_type = group_type
+        self.min_degree = min_degree
+        self.max_degree = max_degree
+        self.min_order = min_order
+        self.max_order = max_order
+        self.min_len = min_len
+        self.max_len = max_len
+
+
+class PermutationGroups(datasets.GeneratorBasedBuilder):
+    """Permutation groups dataset with dynamic filtering."""
+
+    VERSION = datasets.Version("5.0.0")
+
+    # Define all available group types
+    GROUP_TYPES = [
+        "symmetric",
+        "alternating",
+        "cyclic",
+        "dihedral",
+        "klein",
+        "quaternion",
+        "elementary_abelian",
+        "psl",
+        "frobenius",
+        "mathieu",
     ]
 
-    DEFAULT_CONFIG_NAME = "s5_data"
+    BUILDER_CONFIGS = []
+
+    # Add configs for each group type
+    for group_type in GROUP_TYPES:
+        BUILDER_CONFIGS.append(
+            PermutationGroupsConfig(
+                name=group_type,
+                description=f"{group_type.capitalize()} permutation groups",
+                group_type=group_type,
+            )
+        )
+
+    # Add "all" configuration
+    BUILDER_CONFIGS.append(
+        PermutationGroupsConfig(
+            name="all",
+            description="All permutation groups",
+            group_type=None,  # Will load all types
+        )
+    )
+
+    DEFAULT_CONFIG_NAME = "symmetric"
 
     def _info(self):
         return datasets.DatasetInfo(
             description=_DESCRIPTION,
-            features=datasets.Features({
-                "input_sequence": datasets.Value("string"),
-                "target": datasets.Value("string"),
-            }),
+            features=datasets.Features(
+                {
+                    "input_sequence": datasets.Value("string"),
+                    "target": datasets.Value("string"),
+                    "group_type": datasets.Value("string"),
+                    "group_degree": datasets.Value("int32"),
+                    "group_order": datasets.Value("int32"),
+                    "sequence_length": datasets.Value("int32"),
+                }
+            ),
             homepage=_HOMEPAGE,
             license=_LICENSE,
         )
 
     def _split_generators(self, dl_manager):
-        # Handle the "all" configuration specially
-        if self.config.name == "all":
-            # Get all individual dataset configurations
-            all_configs = ["s3_data", "s4_data", "s5_data", "s6_data", "s7_data", 
-                          "a3_data", "a4_data", "a5_data", "a6_data", "a7_data"]
-            
-            # Download all arrow files
-            train_files = []
-            test_files = []
-            
-            for config in all_configs:
-                data_urls = {
-                    "train": f"data/{config}/train/data-00000-of-00001.arrow",
-                    "test": f"data/{config}/test/data-00000-of-00001.arrow",
-                }
-                downloaded = dl_manager.download(data_urls)
-                train_files.append(downloaded["train"])
-                test_files.append(downloaded["test"])
-            
-            return [
-                datasets.SplitGenerator(
-                    name=datasets.Split.TRAIN,
-                    gen_kwargs={
-                        "files": train_files,
-                    },
-                ),
-                datasets.SplitGenerator(
-                    name=datasets.Split.TEST,
-                    gen_kwargs={
-                        "files": test_files,
-                    },
-                ),
-            ]
+        # Determine which datasets to load
+        if self.config.group_type:
+            # Load the superset for this group type
+            datasets_to_load = [f"{self.config.group_type}_superset"]
         else:
-            # Single configuration
-            # Download the actual data files
-            data_urls = {
-                "train": f"{self.config.data_dir}/train/data-00000-of-00001.arrow",
-                "test": f"{self.config.data_dir}/test/data-00000-of-00001.arrow",
-            }
-            
-            downloaded_files = dl_manager.download(data_urls)
-            
-            return [
-                datasets.SplitGenerator(
-                    name=datasets.Split.TRAIN,
-                    gen_kwargs={
-                        "files": [downloaded_files["train"]],
-                    },
-                ),
-                datasets.SplitGenerator(
-                    name=datasets.Split.TEST,
-                    gen_kwargs={
-                        "files": [downloaded_files["test"]],
-                    },
-                ),
+            # Load all supersets
+            datasets_to_load = [
+                "symmetric_superset",
+                "alternating_superset",
+                "cyclic_superset",
+                "dihedral_superset",
+                "klein_superset",
+                "quaternion_superset",
+                "elementary_abelian_superset",
+                "psl_superset",
+                "frobenius_superset",
+                "mathieu_superset",
             ]
 
-    def _generate_tables(self, files):
-        """Yield arrow tables directly for better performance."""
-        for file_idx, file in enumerate(files):
-            # Load the dataset using the datasets library format
-            dataset = datasets.Dataset.from_file(file)
-            # Get the underlying Arrow table
-            table = dataset.data.table
-            yield file_idx, table
+        # Build file URLs using wildcards
+        train_urls = []
+        test_urls = []
+
+        for dataset_name in datasets_to_load:
+            train_urls.append(f"data/{dataset_name}/train/data-*.arrow")
+            test_urls.append(f"data/{dataset_name}/test/data-*.arrow")
+
+        # Download files
+        downloaded_files = dl_manager.download({"train": train_urls, "test": test_urls})
+
+        # Flatten the lists of files
+        train_files = []
+        test_files = []
+
+        for file_list in downloaded_files["train"]:
+            if isinstance(file_list, list):
+                train_files.extend(file_list)
+            else:
+                train_files.append(file_list)
+
+        for file_list in downloaded_files["test"]:
+            if isinstance(file_list, list):
+                test_files.extend(file_list)
+            else:
+                test_files.append(file_list)
+
+        return [
+            datasets.SplitGenerator(
+                name=datasets.Split.TRAIN,
+                gen_kwargs={
+                    "files": train_files,
+                },
+            ),
+            datasets.SplitGenerator(
+                name=datasets.Split.TEST,
+                gen_kwargs={
+                    "files": test_files,
+                },
+            ),
+        ]
+
+    def _generate_examples(self, files):
+        """Yield examples with filtering."""
+        idx = 0
+
+        for file_path in files:
+            # Load the Arrow file
+            table = datasets.table.read_table(file_path)
+
+            # Convert to pandas for easier filtering
+            df = table.to_pandas()
+
+            # Apply filters
+            mask = pd.Series([True] * len(df))
+
+            # Filter by group type (if specified in config)
+            if self.config.group_type:
+                mask &= df["group_type"] == self.config.group_type
+
+            # Filter by degree
+            if self.config.min_degree is not None:
+                mask &= df["group_degree"] >= self.config.min_degree
+            if self.config.max_degree is not None:
+                mask &= df["group_degree"] <= self.config.max_degree
+
+            # Filter by order
+            if self.config.min_order is not None:
+                mask &= df["group_order"] >= self.config.min_order
+            if self.config.max_order is not None:
+                mask &= df["group_order"] <= self.config.max_order
+
+            # Filter by sequence length
+            if self.config.min_len is not None:
+                mask &= df["sequence_length"] >= self.config.min_len
+            if self.config.max_len is not None:
+                mask &= df["sequence_length"] <= self.config.max_len
+
+            # Apply mask
+            filtered_df = df[mask]
+
+            # Yield filtered examples
+            for _, row in filtered_df.iterrows():
+                yield (
+                    idx,
+                    {
+                        "input_sequence": row["input_sequence"],
+                        "target": row["target"],
+                        "group_type": row["group_type"],
+                        "group_degree": int(row["group_degree"]),
+                        "group_order": int(row["group_order"]),
+                        "sequence_length": int(row["sequence_length"]),
+                    },
+                )
+                idx += 1

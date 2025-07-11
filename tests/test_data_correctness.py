@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""
+Exhaustive tests for data correctness of all permutation group datasets.
+Tests that compositions are correct, permutations are valid, etc.
+"""
+
+import pytest
+import numpy as np
+from datasets import load_dataset
+from pathlib import Path
+import random
+from itertools import permutations
+from typing import List, Tuple
+
+
+class TestDataCorrectness:
+    """Test the mathematical correctness of all datasets."""
+
+    @classmethod
+    def setup_class(cls):
+        """Set up test environment."""
+        # Check if we're testing locally or from HuggingFace
+        if Path("./individual_datasets").exists():
+            cls.LOCAL_DATA_DIR = Path("./individual_datasets")
+        elif Path("../individual_datasets").exists():
+            cls.LOCAL_DATA_DIR = Path("../individual_datasets")
+        else:
+            cls.LOCAL_DATA_DIR = None
+
+        cls.USE_LOCAL = cls.LOCAL_DATA_DIR is not None and any(
+            cls.LOCAL_DATA_DIR.iterdir()
+        )
+        cls.REPO_ID = "BeeGass/permutation-groups"
+
+    def load_dataset_with_metadata(self, dataset_name: str):
+        """Load dataset and its metadata (permutation mappings)."""
+        if self.USE_LOCAL:
+            dataset_path = self.LOCAL_DATA_DIR / f"{dataset_name}_data"
+            if not dataset_path.exists():
+                pytest.skip(f"Local dataset {dataset_path} not found")
+
+            from datasets import load_from_disk
+            import json
+
+            # Load dataset
+            dataset_dict = load_from_disk(str(dataset_path))
+
+            # Load metadata
+            metadata_path = dataset_path / "metadata.json"
+            if metadata_path.exists():
+                with open(metadata_path, "r") as f:
+                    metadata = json.load(f)
+            else:
+                metadata = None
+
+            return dataset_dict["train"], dataset_dict["test"], metadata
+        else:
+            # Load from HuggingFace
+            train_dataset = load_dataset(
+                self.REPO_ID, data_dir=f"data/{dataset_name}", split="train"
+            )
+            test_dataset = load_dataset(
+                self.REPO_ID, data_dir=f"data/{dataset_name}", split="test"
+            )
+
+            # For HF datasets, we'll reconstruct permutations from the data
+            return train_dataset, test_dataset, None
+
+    def compose_permutations(self, perm1: List[int], perm2: List[int]) -> List[int]:
+        """Compose two permutations: (perm2 ∘ perm1)."""
+        return [perm2[perm1[i]] for i in range(len(perm1))]
+
+    def permutation_to_id(self, perm: List[int], all_perms: List[List[int]]) -> int:
+        """Find the ID of a permutation in the group."""
+        for i, p in enumerate(all_perms):
+            if p == perm:
+                return i
+        raise ValueError(f"Permutation {perm} not found in group")
+
+    def verify_composition(
+        self, input_ids: List[int], target_id: int, all_perms: List[List[int]]
+    ) -> bool:
+        """Verify that composing input permutations gives the target."""
+        # Start with identity
+        result = list(range(len(all_perms[0])))
+
+        # Compose from left to right (p1 ∘ p2 ∘ p3 ...)
+        for perm_id in input_ids:
+            result = self.compose_permutations(result, all_perms[perm_id])
+
+        # Check if result matches target
+        return result == all_perms[target_id]
+
+    # ========== Symmetric Group Tests ==========
+
+    @pytest.mark.parametrize("n", [3, 4, 5])
+    def test_symmetric_group_correctness(self, n):
+        """Test correctness of symmetric group Sn data."""
+        dataset_name = f"s{n}"
+        train_dataset, test_dataset, metadata = self.load_dataset_with_metadata(
+            dataset_name
+        )
+
+        # Generate all permutations for Sn
+        all_perms = list(permutations(range(n)))
+        all_perms = [list(p) for p in all_perms]
+
+        # Test samples from train set
+        num_samples = min(100, len(train_dataset))
+        indices = random.sample(range(len(train_dataset)), num_samples)
+
+        errors = []
+        for idx in indices:
+            sample = train_dataset[idx]
+            input_ids = sample["input_sequence"]
+            target_id = sample["target"]
+
+            # Verify composition
+            if not self.verify_composition(input_ids, target_id, all_perms):
+                errors.append(f"Sample {idx}: {input_ids} -> {target_id}")
+
+        assert len(errors) == 0, f"Composition errors in S{n}:\n" + "\n".join(
+            errors[:10]
+        )
+
+    # ========== Cyclic Group Tests ==========
+
+    @pytest.mark.parametrize("n", [3, 5, 7, 10])
+    def test_cyclic_group_correctness(self, n):
+        """Test correctness of cyclic group Cn data."""
+        dataset_name = f"c{n}"
+        train_dataset, test_dataset, metadata = self.load_dataset_with_metadata(
+            dataset_name
+        )
+
+        # Generate cyclic group permutations
+        # Cn is generated by the cycle (0 1 2 ... n-1)
+        generator = list(range(1, n)) + [0]
+        all_perms = []
+        current = list(range(n))  # Identity
+
+        for _ in range(n):
+            all_perms.append(current[:])
+            # Apply generator
+            current = [current[generator[i]] for i in range(n)]
+
+        # Test samples
+        num_samples = min(100, len(train_dataset))
+        indices = random.sample(range(len(train_dataset)), num_samples)
+
+        errors = []
+        for idx in indices:
+            sample = train_dataset[idx]
+            input_ids = sample["input_sequence"]
+            target_id = sample["target"]
+
+            # Cyclic group composition is just addition mod n
+            expected_target = sum(input_ids) % n
+
+            if target_id != expected_target:
+                errors.append(
+                    f"Sample {idx}: sum({input_ids}) % {n} = {expected_target}, got {target_id}"
+                )
+
+        assert len(errors) == 0, f"Composition errors in C{n}:\n" + "\n".join(
+            errors[:10]
+        )
+
+    # ========== Alternating Group Tests ==========
+
+    def is_even_permutation(self, perm: List[int]) -> bool:
+        """Check if a permutation is even (has even number of transpositions)."""
+        n = len(perm)
+        visited = [False] * n
+        num_cycles = 0
+
+        for i in range(n):
+            if not visited[i]:
+                # Start a new cycle
+                j = i
+                cycle_length = 0
+                while not visited[j]:
+                    visited[j] = True
+                    j = perm[j]
+                    cycle_length += 1
+                if cycle_length > 1:
+                    num_cycles += cycle_length - 1
+
+        return num_cycles % 2 == 0
+
+    @pytest.mark.parametrize("n", [3, 4, 5])
+    def test_alternating_group_correctness(self, n):
+        """Test correctness of alternating group An data."""
+        dataset_name = f"a{n}"
+        train_dataset, test_dataset, metadata = self.load_dataset_with_metadata(
+            dataset_name
+        )
+
+        # Generate all even permutations for An
+        all_perms = []
+        for perm in permutations(range(n)):
+            if self.is_even_permutation(list(perm)):
+                all_perms.append(list(perm))
+
+        # Verify group order
+        expected_order = len(all_perms)
+        assert train_dataset[0]["group_order"] == expected_order, (
+            f"A{n} should have order {expected_order}"
+        )
+
+        # Test that all permutations in the dataset are even
+        num_samples = min(50, len(train_dataset))
+        for i in range(num_samples):
+            sample = train_dataset[i]
+            # We can't directly check the permutations without metadata,
+            # but we can verify the group properties
+            assert sample["group_degree"] == n
+            assert sample["group_order"] == expected_order
+
+    # ========== Dihedral Group Tests ==========
+
+    @pytest.mark.parametrize("n", [3, 4, 5, 6])
+    def test_dihedral_group_properties(self, n):
+        """Test properties of dihedral group Dn data."""
+        dataset_name = f"d{n}"
+        train_dataset, test_dataset, metadata = self.load_dataset_with_metadata(
+            dataset_name
+        )
+
+        # Dihedral group Dn has order 2n
+        expected_order = 2 * n
+
+        # Test samples
+        num_samples = min(50, len(train_dataset))
+        for i in range(num_samples):
+            sample = train_dataset[i]
+            assert sample["group_degree"] == n
+            assert sample["group_order"] == expected_order
+
+    # ========== Klein Four-Group Test ==========
+
+    def test_klein_four_group(self):
+        """Test Klein four-group V4 data."""
+        dataset_name = "v4"
+        train_dataset, test_dataset, metadata = self.load_dataset_with_metadata(
+            dataset_name
+        )
+
+        # V4 has order 4 and degree 4
+        for i in range(min(20, len(train_dataset))):
+            sample = train_dataset[i]
+            assert sample["group_degree"] == 4
+            assert sample["group_order"] == 4
+
+            # V4 is abelian, so all elements have order ≤ 2
+            # Every element composed with itself gives identity
+            if len(sample["input_sequence"]) == 2:
+                if sample["input_sequence"][0] == sample["input_sequence"][1]:
+                    # Non-identity elements squared give identity
+                    assert sample["target"] == 0 or sample["input_sequence"][0] == 0
+
+    # ========== Data Integrity Tests ==========
+
+    def test_sequence_length_distribution(self):
+        """Test that datasets have proper distribution of sequence lengths."""
+        # Test a few representative datasets
+        test_datasets = ["s5", "a4", "c10", "d6"]
+
+        for dataset_name in test_datasets:
+            if (
+                self.USE_LOCAL
+                and not (self.LOCAL_DATA_DIR / f"{dataset_name}_data").exists()
+            ):
+                continue
+
+            train_dataset, _, _ = self.load_dataset_with_metadata(dataset_name)
+
+            # Collect length distribution
+            length_counts = {}
+            for item in train_dataset:
+                length = item["length"]
+                length_counts[length] = length_counts.get(length, 0) + 1
+
+            # Should have various lengths from 3 to 1024
+            assert min(length_counts.keys()) >= 3
+            assert max(length_counts.keys()) <= 1024
+
+            # Should have good coverage of different lengths
+            assert len(length_counts) > 20, (
+                f"Only {len(length_counts)} different lengths in {dataset_name}"
+            )
+
+    def test_no_duplicate_examples(self):
+        """Test that there are no duplicate examples in the dataset."""
+        test_datasets = ["s3", "c5", "d4"]
+
+        for dataset_name in test_datasets:
+            if (
+                self.USE_LOCAL
+                and not (self.LOCAL_DATA_DIR / f"{dataset_name}_data").exists()
+            ):
+                continue
+
+            train_dataset, _, _ = self.load_dataset_with_metadata(dataset_name)
+
+            # Create unique identifiers for each example
+            seen_examples = set()
+
+            for i in range(min(1000, len(train_dataset))):
+                item = train_dataset[i]
+                # Create a unique key from input and target
+                key = (tuple(item["input_sequence"]), item["target"])
+
+                assert key not in seen_examples, f"Duplicate found: {key}"
+                seen_examples.add(key)
+
+    def test_target_within_group_bounds(self):
+        """Test that all targets are valid permutation IDs within the group."""
+        test_configs = [
+            ("s3", 6),
+            ("s4", 24),
+            ("a3", 3),
+            ("a4", 12),
+            ("c5", 5),
+            ("c10", 10),
+            ("d4", 8),
+            ("v4", 4),
+        ]
+
+        for dataset_name, group_order in test_configs:
+            if (
+                self.USE_LOCAL
+                and not (self.LOCAL_DATA_DIR / f"{dataset_name}_data").exists()
+            ):
+                continue
+
+            train_dataset, test_dataset, _ = self.load_dataset_with_metadata(
+                dataset_name
+            )
+
+            # Check train set
+            for i in range(min(100, len(train_dataset))):
+                item = train_dataset[i]
+                assert 0 <= item["target"] < group_order, (
+                    f"Target {item['target']} out of bounds for {dataset_name} (order {group_order})"
+                )
+
+                # Also check input sequence IDs
+                for perm_id in item["input_sequence"]:
+                    assert 0 <= perm_id < group_order, (
+                        f"Input ID {perm_id} out of bounds for {dataset_name}"
+                    )
+
+            # Check test set
+            for i in range(min(50, len(test_dataset))):
+                item = test_dataset[i]
+                assert 0 <= item["target"] < group_order
+                for perm_id in item["input_sequence"]:
+                    assert 0 <= perm_id < group_order

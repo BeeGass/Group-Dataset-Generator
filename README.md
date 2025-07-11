@@ -9,8 +9,11 @@ A Python tool for generating permutation composition datasets for symmetric and 
 This project generates datasets of permutation compositions for various mathematical groups:
 - **Symmetric Groups**: S3, S4, S5, S6, S7
 - **Alternating Groups**: A3, A4, A5, A6, A7
+- **Cyclic Groups**: C3-C12, Z3-Z6 (alternative notation)
+- **Dihedral Groups**: D3-D8
+- **Special Groups**: PSL(2,5), F20 (Frobenius)
 
-Each dataset consists of sequences of permutations and their compositions, useful for training models on group theory operations.
+Each dataset consists of sequences of permutations and their compositions, useful for training models on group theory operations. All datasets are available with multiple sequence length variants (4, 8, 16, 32, 64, 128, 256, 512).
 
 ## Features
 
@@ -40,7 +43,7 @@ pip install -e .
 
 ```bash
 # Generate S5 dataset with 100,000 samples
-uv run python generate.py \
+uv run python generate_enhanced.py \
     --group-name S5 \
     --num-samples 100000 \
     --min-len 3 \
@@ -48,12 +51,15 @@ uv run python generate.py \
     --test-split-size 0.2 \
     --output-dir ./s5_data
 
-# Upload to HuggingFace (requires authentication)
-uv run python generate.py \
-    --group-name S5 \
-    --num-samples 100000 \
-    --hf-repo YourUsername/permutation-groups \
-    --hf-upload
+# Generate a cyclic group dataset
+uv run python generate_enhanced.py \
+    --group-name C8 \
+    --num-samples 20000 \
+    --max-len 64 \
+    --output-dir ./c8_data
+
+# Generate all datasets with various lengths
+uv run python generate_all_groups.py --lengths 4 8 16 32 64 128 256 512
 ```
 
 ### Load Datasets from HuggingFace
@@ -64,8 +70,17 @@ from datasets import load_dataset
 # Load a specific group dataset
 s5_dataset = load_dataset("BeeGass/permutation-groups", name="s5_data", trust_remote_code=True)
 
+# Load a specific length variant
+s5_len32 = load_dataset("BeeGass/permutation-groups", name="s5_len32", trust_remote_code=True)
+
+# Load cyclic group dataset
+c8_dataset = load_dataset("BeeGass/permutation-groups", name="c8_data", trust_remote_code=True)
+
 # Load all datasets combined
 all_datasets = load_dataset("BeeGass/permutation-groups", name="all", trust_remote_code=True)
+
+# Load all datasets with specific length
+all_len64 = load_dataset("BeeGass/permutation-groups", name="all_len64", trust_remote_code=True)
 
 # Access the data
 train_data = s5_dataset["train"]
@@ -86,19 +101,32 @@ The composition follows the standard mathematical convention: for input `[p1, p2
 
 ## Available Configurations
 
+### Base Configurations (max_len=512)
+
 | Configuration | Group Type | Group Order | Description |
 |--------------|------------|-------------|-------------|
-| `s3_data` | Symmetric | 6 | Permutations of 3 elements |
-| `s4_data` | Symmetric | 24 | Permutations of 4 elements |
-| `s5_data` | Symmetric | 120 | Permutations of 5 elements |
-| `s6_data` | Symmetric | 720 | Permutations of 6 elements |
-| `s7_data` | Symmetric | 5040 | Permutations of 7 elements |
-| `a3_data` | Alternating | 3 | Even permutations of 3 elements |
-| `a4_data` | Alternating | 12 | Even permutations of 4 elements |
-| `a5_data` | Alternating | 60 | Even permutations of 5 elements |
-| `a6_data` | Alternating | 360 | Even permutations of 6 elements |
-| `a7_data` | Alternating | 2520 | Even permutations of 7 elements |
+| `s3_data` - `s7_data` | Symmetric | 6-5040 | Permutations of 3-7 elements |
+| `a3_data` - `a7_data` | Alternating | 3-2520 | Even permutations of 3-7 elements |
+| `c3_data` - `c12_data` | Cyclic | 3-12 | Cyclic permutations |
+| `z3_data` - `z6_data` | Cyclic | 3-6 | Cyclic (alternative notation) |
+| `d3_data` - `d8_data` | Dihedral | 6-16 | Symmetries of n-gons |
+| `psl25_data` | PSL(2,5) | 60 | Projective special linear group |
+| `f20_data` | Frobenius | 20 | Frobenius group F(5,4) |
 | `all` | Combined | - | All datasets combined |
+
+### Length Variants
+
+Each group is also available with specific maximum sequence lengths:
+- `{group}_len4` - Maximum sequence length 4
+- `{group}_len8` - Maximum sequence length 8  
+- `{group}_len16` - Maximum sequence length 16
+- `{group}_len32` - Maximum sequence length 32
+- `{group}_len64` - Maximum sequence length 64
+- `{group}_len128` - Maximum sequence length 128
+- `{group}_len256` - Maximum sequence length 256
+- `{group}_len512` - Maximum sequence length 512
+
+Example: `s5_len32`, `c8_len64`, `d4_len128`, `all_len16`
 
 ## Examples
 
@@ -134,9 +162,13 @@ uv run pytest tests/test_generate.py -v
 
 ```
 permutation-groups/
-├── generate.py              # Main dataset generation script
+├── generate.py              # Basic dataset generation script
+├── generate_enhanced.py     # Enhanced generator with all group types
+├── generate_all_groups.py   # Batch generation for all groups
+├── all_groups_config.py     # Configuration for all supported groups
 ├── permutation-groups.py    # HuggingFace dataset loading script
 ├── upload_dataset_script.py # Script to upload dataset config to HuggingFace
+├── upload_datasets.py       # Batch upload with rate limiting
 ├── examples.py             # Usage examples and verification
 ├── tests/
 │   └── test_generate.py    # Comprehensive test suite

@@ -9,168 +9,192 @@ tags:
 - group-theory
 - permutations
 - symbolic-reasoning
-pretty_name: Permutation Groups Dataset
+- algebra
+- sequence-modeling
+- state-space-models
+- computational-complexity
+pretty_name: Group Theory Collection
 size_categories:
-- 100K<n<1M
-configs:
-- config_name: s3_data
-  data_files:
-    - split: train
-      path: data/s3_data/train/*
-    - split: test
-      path: data/s3_data/test/*
-- config_name: s4_data
-  data_files:
-    - split: train
-      path: data/s4_data/train/*
-    - split: test
-      path: data/s4_data/test/*
-- config_name: s5_data
-  data_files:
-    - split: train
-      path: data/s5_data/train/*
-    - split: test
-      path: data/s5_data/test/*
-- config_name: s6_data
-  data_files:
-    - split: train
-      path: data/s6_data/train/*
-    - split: test
-      path: data/s6_data/test/*
-- config_name: s7_data
-  data_files:
-    - split: train
-      path: data/s7_data/train/*
-    - split: test
-      path: data/s7_data/test/*
-- config_name: a3_data
-  data_files:
-    - split: train
-      path: data/a3_data/train/*
-    - split: test
-      path: data/a3_data/test/*
-- config_name: a4_data
-  data_files:
-    - split: train
-      path: data/a4_data/train/*
-    - split: test
-      path: data/a4_data/test/*
-- config_name: a5_data
-  data_files:
-    - split: train
-      path: data/a5_data/train/*
-    - split: test
-      path: data/a5_data/test/*
-- config_name: a6_data
-  data_files:
-    - split: train
-      path: data/a6_data/train/*
-    - split: test
-      path: data/a6_data/test/*
-- config_name: a7_data
-  data_files:
-    - split: train
-      path: data/a7_data/train/*
-    - split: test
-      path: data/a7_data/test/*
+- 10M<n<100M
 ---
 
-# Permutation Groups Dataset
+# Group Theory Collection
 
-A comprehensive collection of permutation composition datasets for symmetric and alternating groups, designed for training and evaluating models on group theory operations.
+A comprehensive collection of permutation composition datasets for various mathematical groups, organized by computational complexity classes. This dataset is designed for studying the "Illusion of State" phenomenon in state-space models and transformer architectures.
 
-## Dataset Description
+## Overview
 
-This dataset contains permutation composition problems for various mathematical groups:
-- **Symmetric Groups**: S3, S4, S5, S6, S7
-- **Alternating Groups**: A3, A4, A5, A6, A7
+This dataset provides 94 individual permutation group datasets spanning 10 different group families, systematically organized to facilitate research on the computational boundaries between solvable and non-solvable groups. The organization reflects the fundamental distinction between TC⁰-computable (solvable groups) and NC¹-complete (non-solvable groups) problems.
 
-Each dataset consists of sequences of permutations that need to be composed to produce a target permutation. This is useful for:
-- Training models on symbolic reasoning
-- Evaluating mathematical understanding
-- Testing compositional generalization
-- Studying group theory properties in neural networks
+### Research Motivation
+
+Recent theoretical work demonstrates that TC⁰ models, including Transformers and standard State-Space Models (SSMs), cannot solve NC¹-complete problems such as composing permutations in non-solvable groups. This dataset enables researchers to:
+
+- Empirically verify theoretical computational complexity boundaries
+- Study the "Illusion of State" phenomenon in neural architectures
+- Benchmark mathematical reasoning capabilities of sequence models
+- Investigate generalization patterns across different group structures
+- Analyze the relationship between model architecture and algebraic computation
+
+## Dataset Structure
+
+The dataset is organized in three complementary ways to support different research approaches:
+
+### 1. Flat Organization (data/)
+All 59 individual group datasets are available for direct access in a flat structure, facilitating straightforward loading and comparison across groups.
+
+### 2. TC⁰ Complexity Class (TC0/)
+Contains 43 solvable groups that can theoretically be computed by constant-depth threshold circuits. These groups serve as positive controls where current neural architectures should succeed.
+
+### 3. NC¹ Complexity Class (NC1/)
+Contains 14 non-solvable groups requiring logarithmic-depth circuits for computation. These groups represent problems that are provably beyond the computational capacity of TC⁰ models.
 
 ## Usage
+
+### Basic Loading
 
 ```python
 from datasets import load_dataset
 
-# Load a specific group dataset
-s5_dataset = load_dataset("BeeGass/permutation-groups", name="s5_data", trust_remote_code=True)
+# Load specific group datasets
+s5_data = load_dataset("BeeGass/Group-Theory-Collection", data_dir="data/s5")
+a4_data = load_dataset("BeeGass/Group-Theory-Collection", data_dir="data/a4")
 
-# Load alternating group A5
-a5_dataset = load_dataset("BeeGass/permutation-groups", name="a5_data", trust_remote_code=True)
+# Load from complexity-organized directories
+tc0_cyclic = load_dataset("BeeGass/Group-Theory-Collection", data_dir="TC0/c10")
+nc1_symmetric = load_dataset("BeeGass/Group-Theory-Collection", data_dir="NC1/s7")
 
-# Load all datasets combined
-all_datasets = load_dataset("BeeGass/permutation-groups", name="all", trust_remote_code=True)
-
-# Access the data
-train_data = s5_dataset["train"]
-test_data = s5_dataset["test"]
-
-# Example data point
-print(train_data[0])
-# {'input_sequence': '23 45 12', 'target': '67'}
+# Access train/test splits
+train_data = s5_data["train"]
+test_data = s5_data["test"]
 ```
 
-## Dataset Structure
+### Data Format
 
-Each example contains:
-- `input_sequence`: A space-separated sequence of permutation IDs to be composed
-- `target`: The ID of the resulting permutation after composition
+Each example contains the following fields:
 
-The composition follows standard mathematical convention: for input `[p1, p2, p3]`, the result is `p3 ∘ p2 ∘ p1`.
+```python
+{
+    'input_sequence': "123 456 789",     # Space-separated permutation IDs to compose
+    'target': "234",                      # Result of composition as string
+    'sequence_length': 3,                 # Number of permutations in this sequence
+    'group_degree': 7,                    # Degree of the permutation group (e.g., S7 acts on 7 elements)
+    'group_order': 5040,                  # Order (size) of the group (e.g., |S7| = 7!)
+    'group_type': "symmetric"             # Type of the group
+}
+```
 
-## Available Configurations
+Note: Each dataset contains sequences of varying lengths. The 'sequence_length' field indicates how many permutations are in that particular example's input sequence (ranging from 3 to 1024).
 
-| Configuration | Group Type | Group Order | Elements | Train Samples | Test Samples |
-|--------------|------------|-------------|----------|---------------|--------------|
-| `s3_data` | Symmetric | S3 | 6 | 8,000 | 2,000 |
-| `s4_data` | Symmetric | S4 | 24 | 16,000 | 4,000 |
-| `s5_data` | Symmetric | S5 | 120 | 40,000 | 10,000 |
-| `s6_data` | Symmetric | S6 | 720 | 80,000 | 20,000 |
-| `s7_data` | Symmetric | S7 | 5,040 | 160,000 | 40,000 |
-| `a3_data` | Alternating | A3 | 3 | 4,000 | 1,000 |
-| `a4_data` | Alternating | A4 | 12 | 12,000 | 3,000 |
-| `a5_data` | Alternating | A5 | 60 | 24,000 | 6,000 |
-| `a6_data` | Alternating | A6 | 360 | 64,000 | 16,000 |
-| `a7_data` | Alternating | A7 | 2,520 | 120,000 | 30,000 |
-| `all` | Combined | - | - | 528,000 | 132,000 |
+### Filtering by Sequence Length
 
-## Dataset Features
+Since each dataset contains sequences of all lengths from 3 to 1024, researchers often need to filter for specific length ranges:
 
-- **Variable sequence length**: Input sequences range from 3 to 512 permutations
-- **Consistent formatting**: All permutations use space-separated integer IDs
-- **Metadata included**: Each dataset includes a `metadata.json` file mapping IDs to permutation array forms
-- **Train/test split**: 80/20 split for all configurations
+```python
+# Load full dataset
+dataset = load_dataset("BeeGass/Group-Theory-Collection", data_dir="data/s5")
 
-## Understanding the Data
+# Filter for sequences of specific lengths
+short_sequences = dataset.filter(lambda x: x['sequence_length'] <= 32)
+medium_sequences = dataset.filter(lambda x: 32 < x['sequence_length'] <= 128)
+length_16_only = dataset.filter(lambda x: x['sequence_length'] == 16)
+```
 
-Each permutation is represented by a unique integer ID. The `metadata.json` file in each dataset folder provides the mapping from IDs to permutation array forms.
+## Group Inventory
 
-For example, in S3:
-- ID 0 might map to `[0, 1, 2]` (identity)
-- ID 1 might map to `[0, 2, 1]` (transpose elements 1 and 2)
-- etc.
+### TC⁰ Groups (Solvable) - 75 Groups
+
+| Group Family | Groups | Orders | Mathematical Properties |
+|--------------|--------|--------|------------------------|
+| Symmetric | S3, S4 | 6, 24 | Solvable for n ≤ 4 |
+| Alternating | A3, A4 | 3, 12 | Solvable for n ≤ 4 |
+| Cyclic | C2-C30 (all) | 2-30 | Abelian groups |
+| Dihedral | D3-D20 (all) | 6-40 | Symmetries of regular polygons |
+| Klein | V4 | 4 | Smallest non-cyclic abelian group |
+| Quaternion | Q8, Q16, Q32 | 8, 16, 32 | Non-abelian 2-groups |
+| Elementary Abelian | Z2^[1-5], Z3^[1-4], Z5^[1-4] | Various | Direct products of cyclic groups |
+| Frobenius | F20, F21 | 20, 21 | Transitive permutation groups |
+| Projective Special Linear | PSL(2,2), PSL(2,3), PSL(2,4), PSL(2,8), PSL(2,9), PSL(3,4) | Various | Some solvable PSL groups |
+
+### NC¹ Groups (Non-Solvable) - 19 Groups
+
+| Group Family | Groups | Orders | Mathematical Properties |
+|--------------|--------|--------|------------------------|
+| Symmetric | S5, S6, S7, S8, S9 | 120-362,880 | Non-solvable for n ≥ 5 |
+| Alternating | A5, A6, A7, A8, A9 | 60-181,440 | Simple groups for n ≥ 5 |
+| Projective Special Linear | PSL(2,5), PSL(2,7), PSL(2,11), PSL(3,2), PSL(3,3), PSL(3,5) | Various | Simple groups |
+| Mathieu | M11, M12 | 7,920, 95,040 | Sporadic simple groups |
+
+## Technical Specifications
+
+### Permutation Representation
+- Each permutation is assigned a unique integer identifier within its group
+- Mappings between IDs and permutation arrays are consistent across train/test splits
+- Permutation composition follows right-to-left convention (standard in mathematics)
+
+### Dataset Statistics
+- **Train/Test Split**: 80/20 ratio for all groups
+- **Sequence Lengths**: Variable lengths from 3 to 1024 permutations per example
+- **File Format**: Apache Arrow for efficient data loading and memory mapping
+- **Total Size**: Varies by group order and maximum sequence length
+
+### Composition Convention
+For an input sequence [p₁, p₂, p₃], the target is computed as:
+- Mathematical notation: p₃ ∘ p₂ ∘ p₁
+- Operational interpretation: First apply p₁, then p₂, then p₃
+
+## Dataset Generation
+
+The code used to generate this dataset is available at [https://github.com/BeeGass/Group-Dataset-Generator](https://github.com/BeeGass/Group-Dataset-Generator). The repository includes:
+
+- Complete implementation of all permutation groups
+- Dataset generation scripts with configurable parameters
+- Verification and testing utilities
+- Documentation for extending the dataset with additional groups
+
+## Research Applications
+
+This dataset supports various research directions:
+
+1. **Computational Complexity Theory**: Empirical validation of TC⁰/NC¹ separation in neural networks
+2. **State-Space Model Analysis**: Testing fundamental limitations of linear recurrent architectures
+3. **Transformer Architecture Studies**: Investigating attention mechanism constraints
+4. **Mathematical Reasoning**: Benchmarking symbolic manipulation capabilities
+5. **Generalization Studies**: Cross-length and cross-group generalization patterns
+6. **Representation Learning**: Understanding how models encode algebraic structures
 
 ## Citation
 
-If you use this dataset in your research, please cite:
+When using this dataset in academic work, please cite:
 
 ```bibtex
-@software{permutation_groups_dataset,
-  author = {Bryan Gass},
-  title = {Permutation Groups Dataset},
+@dataset{gass2024permutation,
+  author = {Gass, Bryan},
+  title = {Group Theory Collection},
   year = {2024},
   publisher = {Hugging Face},
-  url = {https://huggingface.co/datasets/BeeGass/permutation-groups}
+  url = {https://huggingface.co/datasets/BeeGass/Group-Theory-Collection},
+  note = {Organized by computational complexity classes (TC⁰/NC¹)}
+}
+
+@software{gass2024generator,
+  author = {Gass, Bryan},
+  title = {Group Dataset Generator},
+  year = {2024},
+  url = {https://github.com/BeeGass/Group-Dataset-Generator}
+}
+
+@article{merrill2024illusion,
+  title = {The Illusion of State in State-Space Models},
+  author = {Merrill, William and Jackson, Ashish and Goldstein, Yoav and Weiss, Gail and Angluin, Dana},
+  journal = {arXiv preprint arXiv:2404.08819},
+  year = {2024}
 }
 ```
 
 ## Acknowledgments
 
-This dataset was inspired by the work of [William Merrill](https://github.com/viking-sudo-rm) and his paper ["The Illusion of State in State-Space Models"](https://arxiv.org/abs/2404.08819), which explores the computational properties of state-space models through group theory.
+This dataset was inspired by the theoretical work of William Merrill and colleagues on "The Illusion of State in State-Space Models" (arXiv:2404.08819), which establishes fundamental computational limitations of state-space models through group-theoretic analysis.
 
 ## License
 
@@ -178,4 +202,4 @@ This dataset is released under the MIT License.
 
 ## Contact
 
-For questions or issues, please open an issue on the [GitHub repository](https://github.com/BeeGass/permutation-groups).
+For questions, issues, or contributions, please use the Hugging Face dataset repository's discussion forum or contact Bryan Gass directly.

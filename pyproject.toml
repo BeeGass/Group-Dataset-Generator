@@ -9,6 +9,8 @@ dependencies = [
     "tqdm",
     "pandas",
     "pyarrow",
+    "numba>=0.61.2",
+    "ruff>=0.12.2",
 ]
 
 [project.optional-dependencies]

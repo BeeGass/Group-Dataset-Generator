@@ -1,91 +1,89 @@
 #!/usr/bin/env python3
-"""Script to generate all permutation group datasets and upload to HuggingFace."""
+"""
+Generate all permutation group datasets.
+"""
 
 import subprocess
-import sys
+import os
 from pathlib import Path
 
-# Define all groups and their configurations
-GROUPS = [
-    # Group name, num_samples, max_len
-    ("S3", 10000, 512),
-    ("S4", 20000, 512),
-    ("S5", 50000, 512),
-    ("S6", 100000, 512),
-    ("S7", 200000, 512),
-    ("A3", 5000, 512),      # Smaller dataset for A3 (only 3 elements)
-    ("A4", 15000, 512),
-    ("A5", 30000, 512),
-    ("A6", 80000, 512),
-    ("A7", 150000, 512),
+# Define all datasets to generate with higher orders where computationally feasible
+DATASETS = [
+    # Original groups - increase orders where possible
+    {
+        "group": "symmetric",
+        "max_degree": 12,
+        "samples": 500000,
+    },  # S12 has order 479,001,600
+    {
+        "group": "alternating",
+        "max_degree": 12,
+        "samples": 400000,
+    },  # A12 has order 239,500,800
+    {"group": "cyclic", "max_degree": 100, "samples": 300000},  # C100 has order 100
+    {"group": "dihedral", "max_degree": 50, "samples": 300000},  # D50 has order 100
+    # Special groups
+    {"group": "klein", "max_degree": 4, "samples": 40000},  # V4 has order 4 (fixed)
+    {"group": "quaternion", "max_degree": 32, "samples": 100000},  # Q32 has order 32
+    {
+        "group": "elementary_abelian",
+        "max_degree": 32,
+        "samples": 150000,
+    },  # Z_2^5 has order 32
+    {"group": "psl", "max_degree": 8, "samples": 100000},  # PSL(2,7) has order 168
+    {"group": "frobenius", "max_degree": 21, "samples": 80000},  # F21 has order 21
+    {"group": "mathieu", "max_degree": 12, "samples": 120000},  # M12 has order 95,040
 ]
 
 HF_REPO = "BeeGass/permutation-groups"
 
 
-def generate_dataset(group_name, num_samples, max_len):
-    """Generate a single dataset."""
-    print(f"\n{'='*60}")
-    print(f"Generating {group_name} dataset...")
-    print(f"{'='*60}")
-    
-    output_dir = f"./{group_name.lower()}_data"
-    
-    cmd = [
-        sys.executable, "generate.py",
-        "--group-name", group_name,
-        "--num-samples", str(num_samples),
-        "--min-len", "3",
-        "--max-len", str(max_len),
-        "--test-split-size", "0.2",
-        "--output-dir", output_dir,
-        "--hf-repo", HF_REPO
-    ]
-    
-    print(f"Command: {' '.join(cmd)}")
-    
-    try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print(f"✓ Successfully generated and uploaded {group_name} dataset")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to generate {group_name} dataset")
-        print(f"Error: {e.stderr}")
+def run_command(cmd):
+    """Run a command and handle errors."""
+    print(f"\nRunning: {cmd}")
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Error: {result.stderr}")
         return False
+    print(result.stdout)
+    return True
 
 
 def main():
-    """Generate all datasets."""
-    print("Generating all permutation group datasets...")
-    print(f"Target repository: {HF_REPO}")
-    
-    successful = []
-    failed = []
-    
-    for group_name, num_samples, max_len in GROUPS:
-        if generate_dataset(group_name, num_samples, max_len):
-            successful.append(group_name)
-        else:
-            failed.append(group_name)
-    
-    # Summary
-    print(f"\n{'='*60}")
-    print("SUMMARY")
-    print(f"{'='*60}")
-    print(f"Successfully generated: {', '.join(successful)}")
-    if failed:
-        print(f"Failed: {', '.join(failed)}")
-    else:
-        print("All datasets generated successfully!")
-    
-    # Upload the dataset script
-    if successful and not failed:
-        print("\nUploading dataset script to HuggingFace...")
-        try:
-            subprocess.run([sys.executable, "upload_dataset_script.py"], check=True)
-            print("✓ Dataset script uploaded successfully")
-        except subprocess.CalledProcessError:
-            print("✗ Failed to upload dataset script")
+    # Create output directory
+    output_dir = Path("./data")
+    output_dir.mkdir(exist_ok=True)
+
+    print("=" * 80)
+    print("GENERATING ALL PERMUTATION GROUP DATASETS")
+    print("=" * 80)
+
+    # Generate each dataset
+    for dataset in DATASETS:
+        print(f"\n{'=' * 60}")
+        print(
+            f"Generating {dataset['group']} superset (max degree {dataset['max_degree']})"
+        )
+        print(f"{'=' * 60}")
+
+        cmd = (
+            f"uv run python generate_superset.py "
+            f"--group-type {dataset['group']} "
+            f"--max-degree {dataset['max_degree']} "
+            f"--num-samples {dataset['samples']} "
+            f"--output-dir ./data/{dataset['group']}_superset "
+            f"--hf-repo {HF_REPO}"
+        )
+
+        if not run_command(cmd):
+            print(f"Failed to generate {dataset['group']} dataset")
+            continue
+
+        print(f"✓ Successfully generated {dataset['group']} dataset")
+
+    print("\n" + "=" * 80)
+    print("ALL DATASETS GENERATED")
+    print("=" * 80)
 
 
 if __name__ == "__main__":
