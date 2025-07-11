@@ -10,26 +10,41 @@ def example_single_group_streaming():
     """Load a single group dataset in streaming mode."""
     print("=== Example 1: Single Group Streaming ===")
     
-    # Load S5 (symmetric group) in streaming mode
-    dataset = load_dataset(
-        "BeeGass/Group-Theory-Collection", 
-        data_dir="data/s5",
-        streaming=True
-    )
-    
-    # Access the train split
-    train_stream = dataset["train"]
-    
-    # Process first 5 examples
-    print("\nFirst 5 examples from S5:")
-    for i, example in enumerate(train_stream):
-        if i >= 5:
-            break
-        print(f"\nExample {i+1}:")
-        print(f"  Input: {example['input_sequence']}")
-        print(f"  Target: {example['target']}")
-        print(f"  Length: {example['sequence_length']}")
-        print(f"  Group: {example['group_type']} (order {example['group_order']})")
+    try:
+        # Load S5 (symmetric group) in streaming mode
+        dataset = load_dataset(
+            "BeeGass/Group-Theory-Collection", 
+            data_dir="data/s5",
+            streaming=True
+        )
+        
+        # Access the train split
+        train_stream = dataset["train"]
+        
+        # Process first 5 examples
+        print("\nFirst 5 examples from S5:")
+        for i, example in enumerate(train_stream):
+            if i >= 5:
+                break
+            print(f"\nExample {i+1}:")
+            if isinstance(example, dict) and 'input_sequence' in example:
+                print(f"  Input: {example['input_sequence']}")
+                print(f"  Target: {example['target']}")
+                print(f"  Length: {example['sequence_length']}")
+                print(f"  Group: {example['group_type']} (order {example['group_order']})")
+            else:
+                print(f"  Warning: Unexpected data format")
+                print(f"  Type: {type(example)}")
+                if isinstance(example, dict):
+                    print(f"  Keys: {list(example.keys())}")
+                else:
+                    print(f"  Value: {example}")
+    except Exception as e:
+        print(f"\nError loading dataset: {e}")
+        print("\nNote: The datasets may still be uploading to HuggingFace.")
+        print("For local testing, you can modify this script to use:")
+        print("  from datasets import load_from_disk")
+        print("  dataset = load_from_disk('individual_datasets/s5_data')")
 
 
 def example_filter_by_length_streaming():

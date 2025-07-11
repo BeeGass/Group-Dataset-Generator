@@ -4,10 +4,23 @@ This directory contains example scripts demonstrating how to use the Group Theor
 
 ## Available Examples
 
+### local_examples.py
+Demonstrates working with local datasets from the individual_datasets directory:
+- Loading individual groups from local storage
+- Filtering by sequence length
+- Processing multiple groups simultaneously
+- Batch processing for training
+- Dataset statistics overview
+
+**Run with:**
+```bash
+python examples/local_examples.py
+```
+
 ### streaming_examples.py
 Demonstrates how to efficiently load and process group datasets using HuggingFace's streaming mode:
-- Loading individual groups
-- Filtering by sequence length
+- Loading individual groups from HuggingFace
+- Filtering by sequence length in streaming mode
 - Processing multiple groups simultaneously
 - Batch processing for training
 - Handling large groups efficiently
@@ -16,6 +29,8 @@ Demonstrates how to efficiently load and process group datasets using HuggingFac
 ```bash
 python examples/streaming_examples.py
 ```
+
+**Note:** The streaming examples require the datasets to be fully uploaded to HuggingFace. If you encounter issues, use local_examples.py instead.
 
 **Key Features:**
 - Memory efficient - no need to download entire datasets
