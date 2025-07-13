@@ -1,5 +1,5 @@
 [project]
-name = "s5-data-gen"
+name = "Group-Dataset-Generator"
 version = "0.1.0"
 description = "A script to generate permutation composition datasets."
 dependencies = [

@@ -42,8 +42,8 @@ All datasets contain variable sequence lengths (uniformly distributed between 3 
 
 ```bash
 # Clone the repository
-git clone https://github.com/BeeGass/s5-data-gen.git
-cd s5-data-gen
+git clone https://github.com/BeeGass/Group-Dataset-Generator.git
+cd Group-Dataset-Generator
 
 # Install dependencies using uv (recommended)
 uv pip install -e .
@@ -169,7 +169,7 @@ uv run pytest tests/test_generate.py -v
 ## Project Structure
 
 ```
-s5-data-gen/
+Group-Dataset-Generator/
 ├── gdg/                           # Core package (Group Dataset Generator)
 │   ├── base_generator.py          # Base class for all generators
 │   ├── generators/                # All specific group generators
@@ -231,7 +231,7 @@ If you use this dataset in your research, please cite:
   author = {Bryan Gass},
   title = {Group Theory Dataset Generator},
   year = {2024},
-  url = {https://github.com/BeeGass/s5-data-gen}
+  url = {https://github.com/BeeGass/Group-Dataset-Generator}
 }
 ```
 
