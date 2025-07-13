@@ -47,12 +47,14 @@ class TestHuggingFaceStreaming:
             )
         except Exception as e:
             # Fallback to data_dir if name-based loading fails
-            print(f"Warning: Loading with name='{dataset_name}' failed, trying data_dir approach")
+            print(
+                f"Warning: Loading with name='{dataset_name}' failed, trying data_dir approach"
+            )
             dataset = load_dataset(
-                self.REPO_ID, 
+                self.REPO_ID,
                 data_dir=f"data/{dataset_name}",
-                split="train", 
-                streaming=True
+                split="train",
+                streaming=True,
             )
 
         # Take first few examples
@@ -78,9 +80,13 @@ class TestHuggingFaceStreaming:
         """Test streaming with manual length filtering."""
         # Load S5 dataset in streaming mode
         try:
-            dataset = load_dataset(self.REPO_ID, name="s5", split="train", streaming=True)
+            dataset = load_dataset(
+                self.REPO_ID, name="s5", split="train", streaming=True
+            )
         except:
-            dataset = load_dataset(self.REPO_ID, data_dir="data/s5", split="train", streaming=True)
+            dataset = load_dataset(
+                self.REPO_ID, data_dir="data/s5", split="train", streaming=True
+            )
 
         # Filter for short sequences
         short_sequences = dataset.filter(lambda x: x["sequence_length"] <= 32)
@@ -136,9 +142,7 @@ class TestHuggingFaceStreaming:
     @pytest.mark.parametrize("split", ["train", "test"])
     def test_both_splits_available(self, split):
         """Test that both train and test splits are available."""
-        dataset = load_dataset(
-            self.REPO_ID, name="s4", split=split, streaming=True
-        )
+        dataset = load_dataset(self.REPO_ID, name="s4", split=split, streaming=True)
 
         # Take one example to verify split exists
         examples = list(dataset.take(1))

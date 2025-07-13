@@ -491,7 +491,7 @@ class BaseIndividualGroupTest:
 
             # Check coverage (should see most group elements as targets)
             coverage = len(target_counts) / group_order
-            
+
             # For large groups, we can't expect to see 50% of all elements in just 1000 samples
             # Adjust expectation based on group size
             if group_order > 1000:
@@ -500,7 +500,7 @@ class BaseIndividualGroupTest:
             else:
                 # For small groups, maintain the 50% expectation
                 expected_coverage = 0.5
-                
+
             assert coverage >= expected_coverage, (
                 f"Poor target coverage {coverage:.2f} for degree {degree}, expected at least {expected_coverage:.2f}"
             )

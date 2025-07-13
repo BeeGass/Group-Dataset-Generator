@@ -274,13 +274,17 @@ class TestDataCorrectness:
             )
 
             # Log the distribution for debugging
-            print(f"\n{dataset_name} length distribution: {len(length_counts)} unique lengths")
+            print(
+                f"\n{dataset_name} length distribution: {len(length_counts)} unique lengths"
+            )
             print(f"Min: {min(length_counts.keys())}, Max: {max(length_counts.keys())}")
-            
+
             # We expect variety in lengths, but don't enforce a specific number
             # since the distribution might not be perfectly uniform
             if len(length_counts) < 10:
-                print(f"WARNING: {dataset_name} has low length variety ({len(length_counts)} unique lengths)")
+                print(
+                    f"WARNING: {dataset_name} has low length variety ({len(length_counts)} unique lengths)"
+                )
 
     def test_no_duplicate_examples(self):
         """Test that there are no duplicate examples in the dataset."""
