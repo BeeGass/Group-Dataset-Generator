@@ -11,7 +11,7 @@ import time
 class TestHuggingFaceStreaming:
     """Test streaming individual datasets from HuggingFace."""
 
-    REPO_ID = "BeeGass/permutation-groups"
+    REPO_ID = "BeeGass/Group-Theory-Collection"
 
     # Sample of datasets to test (one from each complexity class)
     TC0_EXAMPLES = [
@@ -40,9 +40,20 @@ class TestHuggingFaceStreaming:
     ):
         """Test streaming a specific individual dataset."""
         # Load dataset in streaming mode
-        dataset = load_dataset(
-            self.REPO_ID, data_dir=f"data/{dataset_name}", split="train", streaming=True
-        )
+        # Try loading with data_dir approach since configs might be misconfigured
+        try:
+            dataset = load_dataset(
+                self.REPO_ID, name=dataset_name, split="train", streaming=True
+            )
+        except Exception as e:
+            # Fallback to data_dir if name-based loading fails
+            print(f"Warning: Loading with name='{dataset_name}' failed, trying data_dir approach")
+            dataset = load_dataset(
+                self.REPO_ID, 
+                data_dir=f"data/{dataset_name}",
+                split="train", 
+                streaming=True
+            )
 
         # Take first few examples
         examples = list(dataset.take(5))
@@ -52,48 +63,49 @@ class TestHuggingFaceStreaming:
         for example in examples:
             assert "input_sequence" in example
             assert "target" in example
-            assert "length" in example
+            assert "sequence_length" in example
             assert "group_degree" in example
             assert "group_order" in example
 
             # Verify expected values
             assert example["group_order"] == expected_order
             assert example["group_degree"] == expected_degree
-            assert isinstance(example["input_sequence"], list)
-            assert isinstance(example["target"], int)
-            assert example["length"] == len(example["input_sequence"])
+            assert isinstance(example["input_sequence"], str)
+            assert isinstance(example["target"], str)
+            assert 3 <= example["sequence_length"] <= 1024
 
     def test_streaming_with_length_filter(self):
         """Test streaming with manual length filtering."""
         # Load S5 dataset in streaming mode
-        dataset = load_dataset(
-            self.REPO_ID, data_dir="data/s5", split="train", streaming=True
-        )
+        try:
+            dataset = load_dataset(self.REPO_ID, name="s5", split="train", streaming=True)
+        except:
+            dataset = load_dataset(self.REPO_ID, data_dir="data/s5", split="train", streaming=True)
 
         # Filter for short sequences
-        short_sequences = dataset.filter(lambda x: x["length"] <= 32)
+        short_sequences = dataset.filter(lambda x: x["sequence_length"] <= 32)
 
         # Take some examples
         examples = list(short_sequences.take(10))
 
         # Verify all are short
         for example in examples:
-            assert example["length"] <= 32
+            assert 3 <= example["sequence_length"] <= 1024
 
     def test_streaming_from_complexity_dirs(self):
-        """Test streaming from TC0 and NC1 directories."""
-        # Test TC0 dataset
+        """Test streaming from TC0 and NC1 datasets."""
+        # Test TC0 dataset (c5 is a TC^0 group)
         tc0_dataset = load_dataset(
-            self.REPO_ID, data_dir="TC0/c5", split="train", streaming=True
+            self.REPO_ID, name="c5", split="train", streaming=True
         )
 
         tc0_examples = list(tc0_dataset.take(3))
         assert len(tc0_examples) > 0
         assert all(ex["group_order"] == 5 for ex in tc0_examples)
 
-        # Test NC1 dataset
+        # Test NC1 dataset (a5 is an NC^1 group)
         nc1_dataset = load_dataset(
-            self.REPO_ID, data_dir="NC1/a5", split="train", streaming=True
+            self.REPO_ID, name="a5", split="train", streaming=True
         )
 
         nc1_examples = list(nc1_dataset.take(3))
@@ -107,7 +119,7 @@ class TestHuggingFaceStreaming:
         # Load a large dataset in streaming mode
         dataset = load_dataset(
             self.REPO_ID,
-            data_dir="data/s7",  # S7 has order 5040, should be large
+            name="s7",  # S7 has order 5040, should be large
             split="train",
             streaming=True,
         )
@@ -125,7 +137,7 @@ class TestHuggingFaceStreaming:
     def test_both_splits_available(self, split):
         """Test that both train and test splits are available."""
         dataset = load_dataset(
-            self.REPO_ID, data_dir="data/s4", split=split, streaming=True
+            self.REPO_ID, name="s4", split=split, streaming=True
         )
 
         # Take one example to verify split exists

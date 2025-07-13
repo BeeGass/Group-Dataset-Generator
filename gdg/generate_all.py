@@ -30,7 +30,7 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="../individual_datasets",
+        default="../datasets",
         help="Output directory for all datasets",
     )
     parser.add_argument(
@@ -46,76 +46,57 @@ def main():
     # Define all groups to generate
     all_groups = {
         "symmetric": {
-            "script": "symmetric_generator.py",
+            "script": "generators/symmetric.py",
             "args": ["--degrees", "3", "4", "5", "6", "7", "8", "9"],
         },
         "alternating": {
-            "script": "alternating_generator.py",
+            "script": "generators/alternating.py",
             "args": ["--degrees", "3", "4", "5", "6", "7", "8", "9"],
         },
         "cyclic": {
-            "script": "cyclic_generator.py",
+            "script": "generators/cyclic.py",
             "args": [
                 "--degrees",
-                "3",
-                "4",
-                "5",
-                "6",
-                "7",
-                "8",
-                "9",
-                "10",
-                "12",
-                "15",
-                "20",
-                "25",
-                "30",
+                "2", "3", "4", "5", "6", "7", "8", "9", "10",
+                "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+                "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
             ],
         },
         "dihedral": {
-            "script": "dihedral_generator.py",
+            "script": "generators/dihedral.py",
             "args": [
                 "--degrees",
-                "3",
-                "4",
-                "5",
-                "6",
-                "7",
-                "8",
-                "9",
-                "10",
-                "12",
-                "15",
-                "20",
+                "3", "4", "5", "6", "7", "8", "9", "10",
+                "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
             ],
         },
         "quaternion": {
-            "script": "quaternion_generator.py",
+            "script": "generators/quaternion.py",
             "args": ["--powers", "3", "4", "5"],  # Q8, Q16, Q32
         },
-        "klein": {"script": "klein_generator.py", "args": []},
+        "klein": {"script": "generators/klein.py", "args": []},
         "elementary_abelian": {
-            "script": "elementary_abelian_generator.py",
+            "script": "generators/elementary_abelian.py",
             "args": [
                 "--groups",
-                "2,1",
-                "2,2",
-                "2,3",
-                "2,4",
-                "2,5",
-                "3,1",
-                "3,2",
-                "3,3",
-                "5,1",
-                "5,2",
+                "2,1", "2,2", "2,3", "2,4", "2,5",
+                "3,1", "3,2", "3,3", "3,4",
+                "5,1", "5,2", "5,3", "5,4",
             ],
         },
         "frobenius": {
-            "script": "frobenius_generator.py",
+            "script": "generators/frobenius.py",
             "args": ["--groups", "20", "21"],
         },
-        "psl": {"script": "psl_generator.py", "args": ["--primes", "5", "7"]},
-        "mathieu": {"script": "mathieu_generator.py", "args": ["--groups", "11", "12"]},
+        "psl": {
+            "script": "generators/psl.py", 
+            "args": [
+                "--groups",
+                "2,2", "2,3", "2,4", "2,5", "2,7", "2,8", "2,9", "2,11",
+                "3,2", "3,3", "3,4", "3,5",
+            ],
+        },
+        "mathieu": {"script": "generators/mathieu.py", "args": ["--groups", "11", "12"]},
     }
 
     # Determine which groups to generate

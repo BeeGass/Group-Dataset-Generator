@@ -1,19 +1,34 @@
-# Permutation Groups Dataset Generator
+# Group Theory Dataset Generator
 
-A Python tool for generating permutation composition datasets for symmetric and alternating groups, with seamless HuggingFace integration.
+A comprehensive Python framework for generating permutation composition datasets across 94 mathematical groups, organized by computational complexity classes (TC^0/NC^1).
 
-🤗 **Dataset available on HuggingFace**: [BeeGass/permutation-groups](https://huggingface.co/datasets/BeeGass/permutation-groups)
+
+🤗 **Dataset available on HuggingFace**: [BeeGass/Group-Theory-Collection](https://huggingface.co/datasets/BeeGass/Group-Theory-Collection)
 
 ## Overview
 
-This project generates datasets of permutation compositions for various mathematical groups:
-- **Symmetric Groups**: S3, S4, S5, S6, S7
-- **Alternating Groups**: A3, A4, A5, A6, A7
-- **Cyclic Groups**: C3-C12, Z3-Z6 (alternative notation)
-- **Dihedral Groups**: D3-D8
-- **Special Groups**: PSL(2,5), F20 (Frobenius)
+This project generates datasets for studying the computational boundaries between solvable (TC^0) and non-solvable (NC^1) groups, providing:
 
-Each dataset consists of sequences of permutations and their compositions, useful for training models on group theory operations. All datasets are available with multiple sequence length variants (4, 8, 16, 32, 64, 128, 256, 512).
+### 94 Total Groups across 10 Families:
+
+**TC^0 (Solvable) - 58 Groups:**
+- **Symmetric Groups**: S3, S4
+- **Alternating Groups**: A3, A4
+- **Cyclic Groups**: C2-C30 (29 groups)
+- **Dihedral Groups**: D3-D20 (18 groups)
+- **Klein Four-Group**: V4 (isomorphic to Z₂²)
+- **Quaternion Groups**: Q8, Q16, Q32
+- **Elementary Abelian**: Z₂^[1-5], Z₃^[1-4], Z₅^[1-4] (13 groups)
+- **Frobenius Groups**: F20, F21
+- **Projective Special Linear**: PSL(2,2), PSL(2,3)
+
+**NC^1 (Non-Solvable) - 36 Groups:**
+- **Symmetric Groups**: S5-S9
+- **Alternating Groups**: A5-A9
+- **Projective Special Linear**: PSL(2,4), PSL(2,5), PSL(2,7), PSL(2,8), PSL(2,9), PSL(2,11), PSL(3,2), PSL(3,3), PSL(3,4), PSL(3,5)
+- **Mathieu Groups**: M11, M12
+
+All datasets contain variable sequence lengths (uniformly distributed between 3 and 1024 permutations), suitable for studying state-space models and transformer architectures across different context lengths.
 
 ## Features
 
@@ -27,8 +42,8 @@ Each dataset consists of sequences of permutations and their compositions, usefu
 
 ```bash
 # Clone the repository
-git clone https://github.com/BeeGass/permutation-groups.git
-cd permutation-groups
+git clone https://github.com/BeeGass/s5-data-gen.git
+cd s5-data-gen
 
 # Install dependencies using uv (recommended)
 uv pip install -e .
@@ -42,24 +57,20 @@ pip install -e .
 ### Generate a Dataset
 
 ```bash
-# Generate S5 dataset with 100,000 samples
-uv run python generate_enhanced.py \
-    --group-name S5 \
-    --num-samples 100000 \
-    --min-len 3 \
-    --max-len 512 \
-    --test-split-size 0.2 \
-    --output-dir ./s5_data
+# Generate S5 dataset
+uv run python gdg/generate_all.py s5
 
-# Generate a cyclic group dataset
-uv run python generate_enhanced.py \
-    --group-name C8 \
-    --num-samples 20000 \
-    --max-len 64 \
-    --output-dir ./c8_data
+# Generate all TC^0 groups
+uv run python gdg/generate_all.py tc0
 
-# Generate all datasets with various lengths
-uv run python generate_all_groups.py --lengths 4 8 16 32 64 128 256 512
+# Generate all NC^1 groups  
+uv run python gdg/generate_all.py nc1
+
+# Generate specific groups
+uv run python gdg/generate_all.py c5 d6 q8 m11
+
+# Generate all 94 groups
+uv run python gdg/generate_all.py all
 ```
 
 ### Load Datasets from HuggingFace
@@ -67,80 +78,77 @@ uv run python generate_all_groups.py --lengths 4 8 16 32 64 128 256 512
 ```python
 from datasets import load_dataset
 
-# Load a specific group dataset
-s5_dataset = load_dataset("BeeGass/permutation-groups", name="s5_data", trust_remote_code=True)
+# Load specific group datasets
+s5_dataset = load_dataset("BeeGass/Group-Theory-Collection", name="s5")
+a4_dataset = load_dataset("BeeGass/Group-Theory-Collection", name="a4")
+m11_dataset = load_dataset("BeeGass/Group-Theory-Collection", name="m11")
 
-# Load a specific length variant
-s5_len32 = load_dataset("BeeGass/permutation-groups", name="s5_len32", trust_remote_code=True)
-
-# Load cyclic group dataset
-c8_dataset = load_dataset("BeeGass/permutation-groups", name="c8_data", trust_remote_code=True)
-
-# Load all datasets combined
-all_datasets = load_dataset("BeeGass/permutation-groups", name="all", trust_remote_code=True)
-
-# Load all datasets with specific length
-all_len64 = load_dataset("BeeGass/permutation-groups", name="all_len64", trust_remote_code=True)
-
-# Access the data
+# Access train/test splits
 train_data = s5_dataset["train"]
 test_data = s5_dataset["test"]
 
-# Example data point
+# Example data point (sequences have variable lengths)
 print(train_data[0])
-# {'input_sequence': '23 45 12', 'target': '67'}
+# {
+#     'input_sequence': '23 45 12 ... (variable number of permutation IDs)',
+#     'target': '67',
+#     'sequence_length': 512,  # Varies from 3 to 1024
+#     'group_degree': 5,
+#     'group_order': 120,
+#     'group_type': 'symmetric'
+# }
+
+# Load datasets from complexity class directories
+tc0_cyclic = load_dataset("BeeGass/Group-Theory-Collection", data_dir="TC0/c10")
+nc1_symmetric = load_dataset("BeeGass/Group-Theory-Collection", data_dir="NC1/s7")
 ```
 
 ## Dataset Structure
 
 Each dataset contains:
-- `input_sequence`: Space-separated permutation IDs to be composed
+- `input_sequence`: Space-separated permutation IDs (variable length)
 - `target`: The ID of the resulting permutation after composition
+- `sequence_length`: Number of permutations in the sequence (3 to 1024)
+- `group_degree`: Number of elements the group acts on
+- `group_order`: Total number of elements in the group
+- `group_type`: Type of mathematical group
 
 The composition follows the standard mathematical convention: for input `[p1, p2, p3]`, the result is `p3 ∘ p2 ∘ p1`.
 
-## Available Configurations
+## Dataset Organization
 
-### Base Configurations (max_len=512)
+The datasets are organized in three ways on HuggingFace:
 
-| Configuration | Group Type | Group Order | Description |
-|--------------|------------|-------------|-------------|
-| `s3_data` - `s7_data` | Symmetric | 6-5040 | Permutations of 3-7 elements |
-| `a3_data` - `a7_data` | Alternating | 3-2520 | Even permutations of 3-7 elements |
-| `c3_data` - `c12_data` | Cyclic | 3-12 | Cyclic permutations |
-| `z3_data` - `z6_data` | Cyclic | 3-6 | Cyclic (alternative notation) |
-| `d3_data` - `d8_data` | Dihedral | 6-16 | Symmetries of n-gons |
-| `psl25_data` | PSL(2,5) | 60 | Projective special linear group |
-| `f20_data` | Frobenius | 20 | Frobenius group F(5,4) |
-| `all` | Combined | - | All datasets combined |
+1. **`data/`** - All 94 individual group datasets in flat structure
+2. **`TC0/`** - 58 solvable groups (TC^0 complexity class)
+3. **`NC1/`** - 36 non-solvable groups (NC^1 complexity class)
 
-### Length Variants
+### Complete Group Inventory
 
-Each group is also available with specific maximum sequence lengths:
-- `{group}_len4` - Maximum sequence length 4
-- `{group}_len8` - Maximum sequence length 8  
-- `{group}_len16` - Maximum sequence length 16
-- `{group}_len32` - Maximum sequence length 32
-- `{group}_len64` - Maximum sequence length 64
-- `{group}_len128` - Maximum sequence length 128
-- `{group}_len256` - Maximum sequence length 256
-- `{group}_len512` - Maximum sequence length 512
+**TC^0 Groups (58 total):**
+- Cyclic: c2-c30 (29 groups)
+- Dihedral: d3-d20 (18 groups)
+- Symmetric (solvable): s3, s4
+- Alternating (solvable): a3, a4
+- Klein: v4 (same as z2_2)
+- Quaternion: q8, q16, q32
+- Elementary Abelian: z2_[1-5], z3_[1-4], z5_[1-4] (13 groups)
+- Frobenius: f20, f21
+- PSL (solvable): psl2_2, psl2_3
 
-Example: `s5_len32`, `c8_len64`, `d4_len128`, `all_len16`
+**NC^1 Groups (36 total):**
+- Symmetric (non-solvable): s5, s6, s7, s8, s9
+- Alternating (non-solvable): a5, a6, a7, a8, a9
+- PSL (non-solvable): psl2_4, psl2_5, psl2_7, psl2_8, psl2_9, psl2_11, psl3_2, psl3_3, psl3_4, psl3_5
+- Mathieu: m11, m12
 
 ## Examples
 
-Run the examples script to see various usage patterns:
+Run the streaming examples:
 
 ```bash
-# Basic examples
-uv run python examples.py
-
-# Verify dataset correctness
-uv run python examples.py --verify
-
-# Benchmark loading times
-uv run python examples.py --benchmark
+# Test streaming from HuggingFace
+uv run python examples/streaming_examples.py
 ```
 
 ## Testing
@@ -161,19 +169,34 @@ uv run pytest tests/test_generate.py -v
 ## Project Structure
 
 ```
-permutation-groups/
-├── generate.py              # Basic dataset generation script
-├── generate_enhanced.py     # Enhanced generator with all group types
-├── generate_all_groups.py   # Batch generation for all groups
-├── all_groups_config.py     # Configuration for all supported groups
-├── permutation-groups.py    # HuggingFace dataset loading script
-├── upload_dataset_script.py # Script to upload dataset config to HuggingFace
-├── upload_datasets.py       # Batch upload with rate limiting
-├── examples.py             # Usage examples and verification
-├── tests/
-│   └── test_generate.py    # Comprehensive test suite
-├── pyproject.toml          # Project configuration
-└── README.md               # This file
+s5-data-gen/
+├── gdg/                           # Core package (Group Dataset Generator)
+│   ├── base_generator.py          # Base class for all generators
+│   ├── generators/                # All specific group generators
+│   │   ├── __init__.py           # Package exports
+│   │   ├── symmetric.py          # Symmetric groups (Sn)
+│   │   ├── alternating.py        # Alternating groups (An)
+│   │   ├── cyclic.py             # Cyclic groups (Cn)
+│   │   ├── dihedral.py           # Dihedral groups (Dn)
+│   │   ├── quaternion.py         # Quaternion groups (Qn)
+│   │   ├── elementary_abelian.py # Elementary abelian (Zp^k)
+│   │   ├── frobenius.py          # Frobenius groups (Fn)
+│   │   ├── klein.py              # Klein four-group (V4)
+│   │   ├── psl.py                # Projective special linear groups
+│   │   └── mathieu.py            # Mathieu groups (M11, M12)
+│   └── generate_all.py           # Master generation script
+├── scripts/                      # Utility scripts
+│   ├── upload_datasets.sh        # Upload to HuggingFace
+│   └── delete_hf_datasets.sh     # Delete from HuggingFace
+├── examples/                     # Usage examples
+│   └── streaming_examples.py     # Streaming usage examples
+├── tests/                        # Comprehensive test suite
+│   └── generators/               # Group-specific tests
+├── docs/                         # Documentation
+│   └── HF_README.md             # HuggingFace dataset card
+├── datasets/                     # Generated datasets (git-ignored)
+├── pyproject.toml               # Project configuration
+└── README.md                    # This file
 ```
 
 ## How It Works
@@ -196,11 +219,19 @@ This project is licensed under the MIT License.
 If you use this dataset in your research, please cite:
 
 ```bibtex
-@software{permutation_groups_dataset,
+@dataset{gass2024groupthoery,
   author = {Bryan Gass},
-  title = {Permutation Groups Dataset Generator},
+  title = {Group Theory Collection},
   year = {2024},
-  url = {https://github.com/BeeGass/permutation-groups}
+  publisher = {Hugging Face},
+  url = {https://huggingface.co/datasets/BeeGass/Group-Theory-Collection}
+}
+
+@software{gass2024generator,
+  author = {Bryan Gass},
+  title = {Group Theory Dataset Generator},
+  year = {2024},
+  url = {https://github.com/BeeGass/s5-data-gen}
 }
 ```
 

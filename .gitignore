@@ -4,15 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
-venv/
-.venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Distribution / packaging
-.Python
 build/
 develop-eggs/
 dist/
@@ -29,23 +20,11 @@ wheels/
 .installed.cfg
 *.egg
 
-# Data files (large dataset files)
-*.arrow
-*.parquet
-data/
-*_data/
-*_data_maxlen*/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
 
 # IDEs
 .vscode/
@@ -53,25 +32,42 @@ htmlcov/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Data
+datasets/
+*.arrow
+*.parquet
+*.csv
+*.json
+!dataset_dict.json
+!metadata.json
+!dataset_info.json
+
+# Cache
+.cache/
+*.cache
+cache*.arrow
 
 # Logs
 *.log
+logs/
 
-# Temporary files
-*.tmp
-*.bak
-.cache/
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.hypothesis/
 
-# HuggingFace
-.huggingface/
+# Environment
+.env
+.env.local
 
 # UV
 .uv/
 uv.lock
-
-# History files
-history.md
