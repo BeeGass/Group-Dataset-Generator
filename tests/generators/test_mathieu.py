@@ -4,7 +4,7 @@ Exhaustive tests for individual Mathieu group datasets (M11, M12).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 
 
 class TestMathieuIndividual(BaseIndividualGroupTest):

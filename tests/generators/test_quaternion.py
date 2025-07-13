@@ -4,7 +4,7 @@ Exhaustive tests for individual quaternion group datasets (Q8, Q16, Q32).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 
 
 class TestQuaternionIndividual(BaseIndividualGroupTest):

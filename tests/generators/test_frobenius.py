@@ -4,7 +4,7 @@ Exhaustive tests for individual Frobenius group datasets (F20, F21).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 
 
 class TestFrobeniusIndividual(BaseIndividualGroupTest):

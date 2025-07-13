@@ -4,7 +4,7 @@ Exhaustive tests for individual symmetric group datasets (S3-S9).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 
 
 class TestSymmetricIndividual(BaseIndividualGroupTest):

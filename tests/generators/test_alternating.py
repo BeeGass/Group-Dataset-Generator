@@ -4,7 +4,7 @@ Exhaustive tests for individual alternating group datasets (A3-A9).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 import math
 
 

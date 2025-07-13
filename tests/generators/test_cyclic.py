@@ -4,7 +4,7 @@ Exhaustive tests for individual cyclic group datasets (C3-C30).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 import math
 
 

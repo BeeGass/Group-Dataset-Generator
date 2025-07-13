@@ -4,7 +4,7 @@ Exhaustive tests for individual dihedral group datasets (D3-D20).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 
 
 class TestDihedralIndividual(BaseIndividualGroupTest):

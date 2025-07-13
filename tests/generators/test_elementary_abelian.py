@@ -4,7 +4,7 @@ Exhaustive tests for individual elementary abelian group datasets.
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 
 
 class TestElementaryAbelianIndividual(BaseIndividualGroupTest):

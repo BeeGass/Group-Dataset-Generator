@@ -25,6 +25,11 @@ exclude = ["a5_data", "s3_data", "s4_data", "s5_data"]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
+
 [tool.pytest.ini_options]
 addopts = "-v"
 markers = [

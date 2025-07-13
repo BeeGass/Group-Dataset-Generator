@@ -4,7 +4,7 @@ Exhaustive tests for individual PSL group datasets (PSL(2,5), PSL(2,7)).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 
 
 class TestPSLIndividual(BaseIndividualGroupTest):

@@ -4,7 +4,7 @@ Exhaustive tests for individual Klein Four group dataset (V4).
 """
 
 import pytest
-from .test_base_individual import BaseIndividualGroupTest
+from ..test_base_individual import BaseIndividualGroupTest
 
 
 class TestKleinIndividual(BaseIndividualGroupTest):

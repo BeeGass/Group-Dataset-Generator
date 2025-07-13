@@ -1,25 +1,25 @@
 """Group generators for creating permutation datasets."""
 
-from .alternating import AlternatingGenerator
-from .cyclic import CyclicGenerator
-from .dihedral import DihedralGenerator
-from .elementary_abelian import ElementaryAbelianGenerator
-from .frobenius import FrobeniusGenerator
-from .klein import KleinGenerator
-from .mathieu import MathieuGenerator
-from .psl import PSLGenerator
-from .quaternion import QuaternionGenerator
-from .symmetric import SymmetricGenerator
+from .alternating import AlternatingGroupGenerator
+from .cyclic import CyclicGroupGenerator
+from .dihedral import DihedralGroupGenerator
+from .elementary_abelian import ElementaryAbelianGroupGenerator
+from .frobenius import FrobeniusGroupGenerator
+from .klein import KleinFourGroupGenerator
+from .mathieu import MathieuGroupGenerator
+from .psl import PSLGroupGenerator
+from .quaternion import QuaternionGroupGenerator
+from .symmetric import SymmetricGroupGenerator
 
 __all__ = [
-    "AlternatingGenerator",
-    "CyclicGenerator",
-    "DihedralGenerator",
-    "ElementaryAbelianGenerator",
-    "FrobeniusGenerator",
-    "KleinGenerator",
-    "MathieuGenerator",
-    "PSLGenerator",
-    "QuaternionGenerator",
-    "SymmetricGenerator",
+    "AlternatingGroupGenerator",
+    "CyclicGroupGenerator",
+    "DihedralGroupGenerator",
+    "ElementaryAbelianGroupGenerator",
+    "FrobeniusGroupGenerator",
+    "KleinFourGroupGenerator",
+    "MathieuGroupGenerator",
+    "PSLGroupGenerator",
+    "QuaternionGroupGenerator",
+    "SymmetricGroupGenerator",
 ]
