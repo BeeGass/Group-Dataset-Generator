@@ -139,7 +139,9 @@ class TestHuggingFaceStreaming:
         elapsed_time = time.time() - start_time
 
         if len(examples) == 0:
-            pytest.skip("Performance test dataset (s7) appears to be empty on HuggingFace")
+            pytest.skip(
+                "Performance test dataset (s7) appears to be empty on HuggingFace"
+            )
 
         # Should be fast (under 30 seconds even with network latency)
         assert elapsed_time < 30, f"Streaming took too long: {elapsed_time:.2f}s"
